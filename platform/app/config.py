@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     redis_url: str
     internal_token: str
     pass_private_key_path: str
+    paypal_client_id: str
+    paypal_client_secret: str
+    paypal_base_url: str = "https://api-m.sandbox.paypal.com"
+    public_base_url: str
     environment: str = "development"
 
 

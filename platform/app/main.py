@@ -6,7 +6,8 @@ from sqlalchemy import text
 
 from app.db import engine
 from app.redis_client import redis_client
-from app.routers import agents, internal, purchases, wallet
+from app.routers import agents, internal, purchases, topups, wallet
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,6 +21,7 @@ app.include_router(agents.router)
 app.include_router(internal.router)
 app.include_router(purchases.router)
 app.include_router(wallet.router)
+app.include_router(topups.router)
 
 
 @app.get("/health")
