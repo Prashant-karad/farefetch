@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
     internal_token: str
+    pass_private_key_path: str
     environment: str = "development"
 
 

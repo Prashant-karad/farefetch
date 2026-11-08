@@ -58,3 +58,14 @@ async def log_access(**fields) -> None:
         await http.post("/internal/access-logs", json=fields)
     except httpx.HTTPError:
         pass  # production: push to a queue and retry instead of dropping
+
+async def is_revoked(grant_id: str) -> bool:
+    """Signed passes can't be 'unsigned', so early cancellation uses a Redis deny-list.
+
+    Fail-open: if Redis is down we skip this check and rely on the signature + expiry.
+    For paid content that's a deliberate trade-off (availability over strictness).
+    """
+    try:
+        return await redis_client.exists(f"gw:revoked:{grant_id}") == 1
+    except Exception:
+        return False

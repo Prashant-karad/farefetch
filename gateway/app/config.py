@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     internal_token: str
     platform_url: str
     origin_url: str
+    pass_public_key_path: str
     resource_cache_seconds: int = 60
     agent_cache_seconds: int = 60
 

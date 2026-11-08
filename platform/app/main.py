@@ -6,8 +6,7 @@ from sqlalchemy import text
 
 from app.db import engine
 from app.redis_client import redis_client
-from app.routers import agents, internal
-
+from app.routers import agents, internal, purchases, wallet
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,6 +18,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Fairfetch Platform API", version="0.2.0", lifespan=lifespan)
 app.include_router(agents.router)
 app.include_router(internal.router)
+app.include_router(purchases.router)
+app.include_router(wallet.router)
 
 
 @app.get("/health")
