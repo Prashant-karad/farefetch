@@ -25,9 +25,16 @@ class Settings(BaseSettings):
     # Where the publisher's origin lives (the license guard fetches source text from it)
     origin_url: str = "http://127.0.0.1:8002"
 
+    # Live story page (/live): runs the seeded demo agent. Turn off for anything real.
+    demo_mode: bool = True
+    demo_agent_api_key: str | None = None
+    gateway_url: str = "http://127.0.0.1:8000"
+
     # LLM (optional: without a key, deterministic fallbacks are used)
+    llm_provider: str = "groq"           # "groq" or "gemini"
+    groq_api_key: str | None = None
     gemini_api_key: str | None = None
-    llm_model: str = "gemini-2.0-flash"
+    llm_model: str | None = None         # default chosen per provider in services/llm.py
 
 
 settings = Settings()

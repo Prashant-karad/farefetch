@@ -17,7 +17,7 @@ PAGE = Path(__file__).resolve().parents[1] / "static" / "dashboard.html"
 
 
 def usd(units: int | None) -> str:
-    units = units or 0
+    units = int(units or 0)  # Postgres SUM() returns NUMERIC -> Decimal; ':04d' needs an int
     sign = "-" if units < 0 else ""
     units = abs(units)
     return f"{sign}${units // 10_000}.{units % 10_000:04d}"

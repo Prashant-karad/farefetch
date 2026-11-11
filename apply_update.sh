@@ -6,6 +6,6 @@ grep -qx "agent/runs/" .gitignore || echo "agent/runs/" >> .gitignore
 grep -qx "keys/" .gitignore || echo "keys/" >> .gitignore
 chmod +x scripts/dev.sh
 echo "Files updated. New settings to add to .env (see .env.example):"
-for v in GATEWAY_URL PUBLISHER_A_PAYPAL_EMAIL PUBLISHER_B_PAYPAL_EMAIL GEMINI_API_KEY LLM_MODEL; do
+for v in GATEWAY_URL PUBLISHER_A_PAYPAL_EMAIL PUBLISHER_B_PAYPAL_EMAIL LLM_PROVIDER GROQ_API_KEY LLM_MODEL; do
   grep -q "^$v=" .env 2>/dev/null || echo "  missing: $v"
 done

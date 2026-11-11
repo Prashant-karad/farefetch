@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fairfetch Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a protocol console. Network map + story on the left, "who sees what" on the right.
+   One deliberate dark look (projector / video friendly). Each colour means one thing in the protocol. */
+:root {
+  color-scheme: dark;
+  --bg: #0a1020;
+  --surface: #0f182b;
+  --surface-2: #152039;
+  --line: #22304d;
+  --fg: #e7edf8;
+  --muted: #93a1bd;
+  --faint: #5f6e8c;
+  --req: #7ea6ff;     /* a request on the wire */
+  --price: #f4b647;   /* 402 price quotes and money */
+  --pass: #3fd5c2;    /* signed passes, licenses, receipts */
+  --ai: #c59dff;      /* AI model calls */
+  --good: #66d991;
+  --bad: #ff7070;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r: 10px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 40px;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--req); outline-offset: 2px; }
+.mono { font-family: var(--mono); }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1560px; margin: 0 auto; display: grid; gap: 14px; }
+
+/* ---------- header ---------- */
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.brand { display: grid; gap: 2px; min-width: 0; }
+.brand h1 { margin: 0; font: 800 30px/1 var(--display); letter-spacing: -0.02em; }
+.brand h1 span { color: var(--price); }
+.brand p { margin: 0; color: var(--muted); max-width: 64ch; text-wrap: balance; }
+.health { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border: 1px solid var(--line);
+  border-radius: 999px; font-size: 12px; color: var(--muted); background: var(--surface); white-space: nowrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: none; }
+.pill.ok .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent); }
+.pill.down .dot { background: var(--bad); }
+.pill b { color: var(--fg); font-weight: 500; }
+
+/* ---------- controls ---------- */
+.controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
+.q { display: grid; gap: 8px; min-width: 0; }
+.q input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.presets, .opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 3px 10px;
+  font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.chip:hover { color: var(--fg); border-color: var(--faint); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 6px 12px; cursor: pointer; color: var(--muted); font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--fg); }
+.seg button[data-mode="sloppy"][aria-pressed="true"] { color: var(--bad); }
+label.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+.go { display: grid; gap: 8px; justify-items: end; }
+.run { background: var(--price); color: #1a1200; border: 0; border-radius: 9px; padding: 12px 22px;
+  font: 700 16px var(--display); cursor: pointer; letter-spacing: 0.01em; }
+.run:disabled { opacity: .5; cursor: progress; }
+.small-btn { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
+  cursor: pointer; font-size: 13px; }
+.small-btn:hover { border-color: var(--faint); }
+.small-btn:disabled { opacity: .5; cursor: progress; }
+
+/* ---------- main grid ---------- */
+main { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; }
+.panel-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 10px 14px;
+  border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.eyebrow { font: 600 11px var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.left { display: grid; gap: 14px; min-width: 0; }
+
+/* network map */
+.map-wrap { overflow-x: auto; }
+svg.map { display: block; width: 100%; min-width: 620px; height: auto; }
+.edge { stroke: var(--line); stroke-width: 1.5; fill: none; transition: stroke .3s; }
+.edge.hot { stroke: var(--faint); stroke-width: 2; }
+.node rect { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.2; transition: stroke .25s, fill .25s; }
+.node.pulse rect { stroke: var(--price); fill: #1d2943; }
+.node .t { font: 700 14px var(--display); fill: var(--fg); }
+.node .s { font: 11px var(--mono); fill: var(--muted); }
+.node .st { r: 4; fill: var(--faint); }
+.node.ok .st { fill: var(--good); }
+.node.down .st { fill: var(--bad); }
+.badge-t { font: 500 11.5px var(--mono); }
+.pkt-label { font: 500 11.5px var(--mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 14px 12px; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+/* chapters */
+.chapters { display: flex; gap: 4px; overflow-x: auto; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.chap { flex: none; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--faint);
+  padding: 3px 9px 3px 4px; border-radius: 999px; }
+.chap span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1px solid var(--line); font: 600 11px var(--mono); }
+.chap.done { color: var(--muted); }
+.chap.done span { background: var(--surface-2); color: var(--good); border-color: transparent; }
+.chap.active { color: var(--fg); background: var(--surface-2); }
+.chap.active span { border-color: var(--price); color: var(--price); }
+
+/* story */
+.story { list-style: none; margin: 0; padding: 14px; display: grid; gap: 10px; max-height: 64vh; overflow-y: auto;
+  scroll-behavior: smooth; }
+.card { border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; background: var(--bg);
+  display: grid; gap: 8px; animation: rise .35s ease-out; min-width: 0; }
+.card.k-price { border-left: 3px solid var(--price); }
+.card.k-pass { border-left: 3px solid var(--pass); }
+.card.k-ai { border-left: 3px solid var(--ai); }
+.card.k-bad { border-left: 3px solid var(--bad); }
+.card.k-good { border-left: 3px solid var(--good); }
+.card.k-req { border-left: 3px solid var(--req); }
+@keyframes rise { from { transform: translateY(6px); opacity: .4; } to { transform: none; opacity: 1; } }
+.card h3 { margin: 0; font: 700 16px/1.3 var(--display); text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); max-width: 72ch; }
+.card .who { font-size: 12px; color: var(--faint); }
+.row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.tag { font: 500 11.5px var(--mono); padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted); }
+.tag.price { color: var(--price); } .tag.pass { color: var(--pass); } .tag.ai { color: var(--ai); }
+.tag.good { color: var(--good); } .tag.bad { color: var(--bad); } .tag.req { color: var(--req); }
+details { border-top: 1px dashed var(--line); padding-top: 6px; }
+summary { cursor: pointer; font-size: 12.5px; color: var(--req); }
+pre { margin: 6px 0 0; padding: 10px; background: #070c18; border: 1px solid var(--line); border-radius: 7px;
+  overflow-x: auto; font: 12px/1.5 var(--mono); color: #c9d4ea; white-space: pre; max-height: 320px; }
+table.offers { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl { overflow-x: auto; }
+table.offers td, table.offers th { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+table.offers th { font-weight: 600; color: var(--faint); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border-top: 0; }
+table.offers td.p { color: var(--price); white-space: nowrap; }
+table.offers .pv { color: var(--faint); font-size: 12px; }
+.decision { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+.decision:first-child { border-top: 0; }
+.decision .v { font: 700 12px var(--mono); padding-top: 2px; }
+.decision .v.buy { color: var(--good); } .decision .v.skip { color: var(--faint); }
+.decision .r { color: var(--muted); font-size: 13.5px; }
+.split { display: flex; height: 8px; border-radius: 4px; overflow: hidden; max-width: 380px; }
+.split i { display: block; }
+.answer { color: var(--fg); font-size: 15px; line-height: 1.65; max-width: 75ch; white-space: pre-wrap; }
+.answer .cite { font: 500 11.5px var(--mono); color: var(--pass); background: color-mix(in srgb, var(--pass) 12%, transparent);
+  padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+mark { background: color-mix(in srgb, var(--bad) 28%, transparent); color: var(--fg); border-radius: 3px; padding: 0 2px; }
+.draft { color: var(--muted); font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; max-width: 75ch; }
+.empty { padding: 26px 14px; color: var(--muted); display: grid; gap: 12px; }
+.empty h2 { margin: 0; font: 700 22px var(--display); color: var(--fg); text-wrap: balance; }
+.acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.act { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; display: grid; gap: 4px; }
+.act b { font: 700 14px var(--display); }
+.act span { color: var(--muted); font-size: 13px; }
+
+/* views */
+.views { position: sticky; top: max(12px, env(safe-area-inset-top, 0px)); display: grid; grid-template-rows: auto minmax(0, 1fr); max-height: calc(100vh - 24px); }
+.tabs { display: flex; gap: 2px; padding: 6px; border-bottom: 1px solid var(--line); overflow-x: auto; align-items: center; }
+.tab { border: 0; background: transparent; padding: 7px 12px; border-radius: 7px; cursor: pointer; color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+.tab[aria-selected="true"] { background: var(--surface-2); color: var(--fg); }
+.tab.flash { color: var(--price); }
+.tabs label.check { margin-left: auto; padding-right: 6px; font-size: 12px; white-space: nowrap; }
+.view { padding: 14px; overflow-y: auto; display: grid; gap: 14px; align-content: start; }
+.big { font: 800 40px/1 var(--display); letter-spacing: -0.02em; }
+.sub { color: var(--muted); font-size: 13px; }
+.bar { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--price); transition: width .6s; }
+.list { display: grid; gap: 0; }
+.li { padding: 8px 0; border-top: 1px solid var(--line); display: grid; gap: 2px; min-width: 0; }
+.li:first-child { border-top: 0; }
+.li .top { display: flex; justify-content: space-between; gap: 10px; }
+.li .top b { font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.li small { color: var(--faint); font-size: 12px; }
+.li .why { color: var(--muted); font-size: 13px; }
+.pub { border: 1px solid var(--line); border-radius: 9px; padding: 12px; display: grid; gap: 8px; }
+.pub h4 { margin: 0; font: 700 17px var(--display); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat b { display: block; font: 700 20px var(--display); }
+.stat span { color: var(--faint); font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; }
+.txn { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 4px; }
+.txn.new { border-color: var(--price); animation: glow 1.6s ease-out; }
+@keyframes glow { from { box-shadow: 0 0 0 3px color-mix(in srgb, var(--price) 35%, transparent); } to { box-shadow: none; } }
+.txn .e { display: flex; justify-content: space-between; font-size: 13px; gap: 10px; }
+.txn .e .neg { color: var(--bad); } .txn .e .pos { color: var(--good); }
+.txn .foot { display: flex; justify-content: space-between; font: 11.5px var(--mono); color: var(--faint); border-top: 1px dashed var(--line); padding-top: 4px; }
+.trace { font: 11.5px/1.5 var(--mono); color: #b8c4dc; display: grid; gap: 4px; }
+.trace div { border-bottom: 1px solid var(--line); padding-bottom: 4px; overflow-wrap: anywhere; }
+.trace em { color: var(--price); font-style: normal; }
+.note { font-size: 12.5px; color: var(--faint); }
+a { color: var(--req); }
+
+@media (max-width: 1050px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  .views { position: static; max-height: none; }
+  .story { max-height: none; }
+}
+@media (max-width: 640px) {
+  .controls { grid-template-columns: minmax(0, 1fr); }
+  .go { justify-items: stretch; }
+  .brand h1 { font-size: 24px; }
+  .big { font-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Fair<span>fetch</span> Live</h1>
+      <p>An AI agent pays publishers per read, through HTTP 402, then has to prove it used their work fairly. Everything below is the real system running.</p>
+    </div>
+    <div class="health" id="health" aria-label="System status"></div>
+  </header>
+
+  <section class="controls" aria-label="Run the agent">
+    <div class="q">
+      <input id="question" aria-label="Question for the research agent" value="When should I sow soybean in Pune and how do I test my soil first?">
+      <div class="presets">
+        <span class="note">Try:</span>
+        <button class="chip" data-q="When should I sow soybean in Pune and how do I test my soil first?">Soybean sowing in Pune</button>
+        <button class="chip" data-q="How do I test my soil before sowing?">Soil testing</button>
+        <button class="chip" data-q="What are today's mandi prices for onion and soybean in Maharashtra?">Mandi prices (paid API)</button>
+        <button class="chip" data-q="Why do soybean leaves turn yellow in July?">Yellow soybean leaves</button>
+      </div>
+    </div>
+    <div class="go">
+      <div class="opts">
+        <div class="seg" role="group" aria-label="Agent behaviour">
+          <button data-mode="careful" aria-pressed="true">Careful agent</button>
+          <button data-mode="sloppy" aria-pressed="false">Copy-paste agent</button>
+        </div>
+        <label class="check"><input type="checkbox" id="fresh" checked> Start with no passes</label>
+        <div class="seg" role="group" aria-label="Playback speed">
+          <button data-speed="1" aria-pressed="true">Story pace</button>
+          <button data-speed="3" aria-pressed="false">Fast</button>
+        </div>
+      </div>
+      <button class="run" id="run">Run the agent</button>
+    </div>
+  </section>
+
+  <main>
+    <div class="left">
+      <section class="panel" aria-label="Network">
+        <div class="panel-h"><span class="eyebrow">The wire: every request as it happens</span><span class="note mono" id="proc">idle</span></div>
+        <div class="map-wrap"><svg class="map" id="map" viewBox="0 0 880 384" role="img" aria-label="Agent, gateway, publisher, platform, PayPal and AI model, with live requests"></svg></div>
+        <div class="legend">
+          <span><i style="background:var(--req)"></i>request</span>
+          <span><i style="background:var(--price)"></i>402 price / money</span>
+          <span><i style="background:var(--pass)"></i>signed pass, license, receipt</span>
+          <span><i style="background:var(--ai)"></i>AI model</span>
+          <span><i style="background:var(--bad)"></i>blocked / violation</span>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Story">
+        <div class="chapters" id="chapters"></div>
+        <ol class="story" id="story">
+          <li class="empty" id="intro">
+            <h2>Three parties, one honest transaction</h2>
+            <div class="acts">
+              <div class="act"><b>The agent owner</b><span>Funds a wallet with PayPal and sets rules: at most $0.05 per item, $1.00 a day.</span></div>
+              <div class="act"><b>The research agent</b><span>Finds sources, sees a price behind HTTP 402, decides what is worth buying, and pays.</span></div>
+              <div class="act"><b>The publisher</b><span>Gets paid per read through PayPal Payouts, plus a signed receipt showing how the work was used.</span></div>
+            </div>
+            <p class="note">Press <b>Run the agent</b>. Each step below is the agent's own trace, with the real HTTP status, headers and timing behind every card. Switch to <b>Copy-paste agent</b> to watch the license guard catch copied text.</p>
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <aside class="panel views" aria-label="Who sees what">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-view="owner" aria-selected="true">Agent owner</button>
+        <button class="tab" role="tab" data-view="publisher" aria-selected="false">Publisher</button>
+        <button class="tab" role="tab" data-view="ledger" aria-selected="false">Ledger</button>
+        <button class="tab" role="tab" data-view="trace" aria-selected="false">Raw trace</button>
+        <label class="check"><input type="checkbox" id="follow" checked> Follow the story</label>
+      </div>
+      <div class="view" id="v-owner" role="tabpanel"></div>
+      <div class="view" id="v-publisher" role="tabpanel" hidden></div>
+      <div class="view" id="v-ledger" role="tabpanel" hidden></div>
+      <div class="view" id="v-trace" role="tabpanel" hidden><div class="trace" id="trace"><div class="note">Raw JSON events from the agent process appear here.</div></div></div>
+    </aside>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const usd = u => { u = Math.round(u || 0); const s = u < 0 ? "-" : ""; u = Math.abs(u); return `${s}$${Math.floor(u / 10000)}.${String(u % 10000).padStart(4, "0")}`; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body?.detail?.message || body?.detail || `HTTP ${r.status}`);
+  return body;
+}
+
+/* ================= network map ================= */
+const NODES = {
+  agent:    { x: 120, y: 192, t: "Research agent", s: "Demo Research Lab", health: null },
+  gateway:  { x: 440, y: 62,  t: "Gateway :8000", s: "402 · verifies passes", health: "Gateway" },
+  origin:   { x: 760, y: 62,  t: "Publisher sites :8002", s: "Krishi Today · Monsoon", health: "Publisher origin" },
+  platform: { x: 440, y: 300, t: "Platform :8001", s: "wallet · ledger · signer", health: "Platform" },
+  paypal:   { x: 760, y: 300, t: "PayPal", s: "Checkout in · Payouts out", health: "PayPal" },
+  ai:       { x: 120, y: 336, t: "AI model", s: "Groq", health: "AI model" },
+};
+const W = 186, H = 62;
+const EDGES = [["agent", "gateway"], ["gateway", "origin"], ["gateway", "platform"], ["agent", "platform"],
+               ["platform", "paypal"], ["agent", "ai"], ["platform", "ai"], ["paypal", "origin"]];
+const SVGNS = "http://www.w3.org/2000/svg";
+const svg = $("#map");
+const mk = (tag, attrs = {}, parent = svg) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+const edgeEls = {};
+function exitPoint(a, b) { // where the line from a's centre leaves a's box
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const t = Math.min(dx ? (W / 2 + 4) / Math.abs(dx) : Infinity, dy ? (H / 2 + 4) / Math.abs(dy) : Infinity);
+  return { x: a.x + dx * t, y: a.y + dy * t };
+}
+function drawMap() {
+  const gE = mk("g"), gN = mk("g");
+  for (const [a, b] of EDGES) {
+    const p = exitPoint(NODES[a], NODES[b]), q = exitPoint(NODES[b], NODES[a]);
+    edgeEls[a + ">" + b] = mk("line", { x1: p.x, y1: p.y, x2: q.x, y2: q.y, class: "edge" }, gE);
+  }
+  for (const [id, n] of Object.entries(NODES)) {
+    const g = mk("g", { class: "node", id: "n-" + id, transform: `translate(${n.x - W / 2},${n.y - H / 2})` }, gN);
+    mk("rect", { width: W, height: H, rx: 10 }, g);
+    mk("circle", { cx: 16, cy: 22, class: "st" }, g);
+    const t = mk("text", { x: 28, y: 27, class: "t" }, g); t.textContent = n.t;
+    const s = mk("text", { x: 16, y: 46, class: "s" }, g); s.textContent = n.s; n.sub = s;
+  }
+  window.pktLayer = mk("g");
+}
+drawMap();
+
+function edgeFor(from, to) {
+  const e = edgeEls[from + ">" + to] || edgeEls[to + ">" + from];
+  const forward = !!edgeEls[from + ">" + to];
+  return { e, forward };
+}
+let SPEED = 1;
+function packet(from, to, label, color = "req", ms = 950) {
+  const { e, forward } = edgeFor(from, to);
+  if (!e) return Promise.resolve();
+  const col = css("--" + color) || color;
+  const x1 = +e.getAttribute(forward ? "x1" : "x2"), y1 = +e.getAttribute(forward ? "y1" : "y2");
+  const x2 = +e.getAttribute(forward ? "x2" : "x1"), y2 = +e.getAttribute(forward ? "y2" : "y1");
+  const g = mk("g", {}, pktLayer);
+  mk("circle", { r: 6, fill: col }, g);
+  mk("circle", { r: 11, fill: "none", stroke: col, "stroke-opacity": .35 }, g);
+  const bg = mk("rect", { x: 10, y: -24, rx: 4, height: 18, fill: css("--bg"), stroke: col, "stroke-opacity": .5 }, g);
+  const tx = mk("text", { x: 16, y: -11, class: "pkt-label", fill: col }, g);
+  tx.textContent = label;
+  bg.setAttribute("width", tx.getComputedTextLength() + 12);
+  e.classList.add("hot");
+  const dur = REDUCED ? 1 : ms / SPEED;
+  return new Promise(res => {
+    const t0 = performance.now();
+    const step = now => {
+      const k = Math.min(1, (now - t0) / dur), ease = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      g.setAttribute("transform", `translate(${x1 + (x2 - x1) * ease},${y1 + (y2 - y1) * ease})`);
+      if (k < 1) requestAnimationFrame(step);
+      else { setTimeout(() => { g.remove(); e.classList.remove("hot"); }, 120 / SPEED); res(); }
+    };
+    requestAnimationFrame(step);
+  });
+}
+function pulse(id, text, color = "price", ms = 1600) {
+  const n = $("#n-" + id); if (!n) return;
+  n.classList.add("pulse");
+  if (text) {
+    const N = NODES[id];
+    const g = mk("g", { transform: `translate(${N.x - W / 2},${N.y + H / 2 + 6})` }, pktLayer);
+    const col = css("--" + color);
+    const r = mk("rect", { rx: 4, height: 18, fill: css("--bg"), stroke: col }, g);
+    const t = mk("text", { x: 6, y: 13, class: "badge-t", fill: col }, g); t.textContent = text;
+    r.setAttribute("width", t.getComputedTextLength() + 12);
+    setTimeout(() => g.remove(), ms / SPEED + 400);
+  }
+  setTimeout(() => n.classList.remove("pulse"), ms / SPEED);
+}
+
+/* ================= health ================= */
+async function loadHealth() {
+  try {
+    const { checks } = await api("/v1/demo/health");
+    $("#health").innerHTML = checks.map(c =>
+      `<span class="pill ${c.ok ? "ok" : "down"}" title="${esc(c.detail)}"><span class="dot"></span><b>${esc(c.name)}</b>${c.ok ? (c.ms != null ? ` ${c.ms} ms` : "") : " down"}</span>`).join("");
+    for (const [id, n] of Object.entries(NODES)) {
+      const c = checks.find(c => c.name === n.health);
+      const el = $("#n-" + id);
+      el.classList.toggle("ok", !n.health || !!c?.ok);
+      el.classList.toggle("down", !!c && !c.ok);
+      if (id === "ai" && c?.ok) n.sub.textContent = c.detail;
+    }
+  } catch { $("#health").innerHTML = `<span class="pill down"><span class="dot"></span><b>Platform</b> unreachable</span>`; }
+}
+
+/* ================= chapters ================= */
+const CHAPTERS = [["find", "Find"], ["price", "Price check (402)"], ["decide", "Decide"], ["pay", "Pay"], ["read", "Read"],
+                  ["write", "Write"], ["guard", "License guard"], ["receipt", "Receipt"], ["payout", "Pay publishers"]];
+$("#chapters").innerHTML = CHAPTERS.map(([k, l], i) => `<span class="chap" data-c="${k}"><span>${i + 1}</span>${l}</span>`).join("");
+function chapter(key) {
+  let seen = false;
+  for (const el of $$(".chap")) {
+    const me = el.dataset.c === key;
+    el.classList.toggle("active", me);
+    if (me) seen = true;
+    el.classList.toggle("done", !seen && !me);
+  }
+  if (!key) $$(".chap").forEach(el => el.classList.remove("done", "active"));
+}
+
+/* ================= views ================= */
+let follow = true, lastState = null, knownTxns = new Set(), runPurchases = [], lastReceipt = null;
+function showView(v, auto = false) {
+  if (auto && !follow) { const t = $(`.tab[data-view="${v}"]`); t.classList.add("flash"); setTimeout(() => t.classList.remove("flash"), 1500); return; }
+  for (const t of $$(".tab")) t.setAttribute("aria-selected", t.dataset.view === v);
+  for (const p of $$(".view")) p.hidden = p.id !== "v-" + v;
+}
+$$(".tab").forEach(t => t.addEventListener("click", () => showView(t.dataset.view)));
+$("#follow").addEventListener("change", e => follow = e.target.checked);
+
+function tween(el, from, to) {
+  if (REDUCED || from === to) { el.textContent = usd(to); return; }
+  const t0 = performance.now(), d = 900;
+  const step = now => { const k = Math.min(1, (now - t0) / d); el.textContent = usd(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+
+function renderOwner(s, prev) {
+  const b = s.budget;
+  const pct = b ? Math.min(100, 100 * b.spent_today / b.max_per_day) : 0;
+  $("#v-owner").innerHTML = `
+    <div><div class="eyebrow">Wallet · ${esc(s.agent.name)}</div>
+      <div class="big num" id="wallet-big">${s.wallet.display}</div>
+      <div class="sub">Funded with PayPal. Every cent below is a ledger entry.</div></div>
+    ${b ? `<div style="display:grid;gap:6px">
+      <div class="row" style="justify-content:space-between"><span class="eyebrow">Owner's rules</span><span class="sub num">${b.spent_today_display} of ${b.max_per_day_display} today</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="row"><span class="tag price">max ${b.max_per_item_display} per item</span><span class="tag price">max ${b.max_per_day_display} per day</span><span class="tag">enforced by the platform, not the agent</span></div></div>` : ""}
+    <div><div class="eyebrow" style="margin-bottom:4px">This run: what the agent bought and why</div>
+      <div class="list">${runPurchases.length ? runPurchases.map(p => `
+        <div class="li"><div class="top"><b>${esc(p.title)}</b><span class="num ${p.ok ? "" : "tag bad"}">${esc(p.note)}</span></div>
+        <div class="why">${esc(p.reason || "")}</div></div>`).join("") : `<div class="note">Nothing yet. Run the agent.</div>`}</div></div>
+    <div style="display:grid;gap:8px">
+      <div class="eyebrow">Add money with PayPal</div>
+      <div class="row"><button class="small-btn" id="topup">Add $5.00 with PayPal</button><span class="note" id="topup-msg">Opens PayPal sandbox checkout in a new tab.</span></div>
+      <div class="list">${s.topups.map(t => `<div class="li"><div class="top"><b class="num">${t.amount}</b><span class="tag ${t.status === "completed" ? "good" : ""}">${t.status}</span></div><small class="mono">PayPal order ${esc(t.order || "-")}</small></div>`).join("")}</div>
+    </div>`;
+  if (prev) tween($("#wallet-big"), prev.wallet.balance, s.wallet.balance);
+  $("#topup").onclick = startTopup;
+}
+
+function renderPublisher(s, prev) {
+  $("#v-publisher").innerHTML = (lastReceipt ? `
+    <div class="pub"><div class="eyebrow">How your work was used (signed receipt ${esc(lastReceipt.receipt_id)})</div>
+      <div class="list">${(lastReceipt.items || []).map(it => `<div class="li"><div class="top"><b class="mono">${esc(it.resource_id)}</b>
+        <span class="tag ${it.cited ? "good" : "bad"}">${it.cited ? "cited" : "not cited"}</span></div>
+        <div class="why">${esc(it.how_used)} · longest copied run ${it.longest_copied_run} of ${it.max_quote_words} allowed words</div></div>`).join("")}</div></div>` : "") + s.publishers.map((p, i) => `
+    <div class="pub">
+      <div class="row" style="justify-content:space-between"><h4>${esc(p.name)}</h4><span class="tag">${esc(p.id)}</span></div>
+      <div class="stats">
+        <div class="stat"><b class="num" data-bal="${i}">${p.balance_display}</b><span>owed now</span></div>
+        <div class="stat"><b class="num">${p.earned_display}</b><span>earned</span></div>
+        <div class="stat"><b class="num">${p.paid_display}</b><span>paid via PayPal</span></div>
+      </div>
+      <div class="list">${p.recent_sales.map(r => `<div class="li"><div class="top"><b>${esc(r.title)}</b><span class="num" style="color:var(--price)">${r.price}</span></div>
+        <div class="why">Agent's reason: ${esc(r.reason || "-")}</div><small>${new Date(r.time).toLocaleTimeString()}</small></div>`).join("") || `<div class="note">No sales yet.</div>`}</div>
+    </div>`).join("");
+  if (prev) s.publishers.forEach((p, i) => { const o = prev.publishers.find(x => x.id === p.id); if (o) tween($(`[data-bal="${i}"]`), o.balance, p.balance); });
+}
+
+function renderLedger(s) {
+  const fresh = new Set();
+  for (const t of s.ledger) if (lastState && !knownTxns.has(t.id)) fresh.add(t.id);
+  s.ledger.forEach(t => knownTxns.add(t.id));
+  $("#v-ledger").innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <div><div class="eyebrow">Double-entry ledger</div><div class="sub">Money only moves as entries that sum to zero. Rows are never edited.</div></div>
+      <span class="tag ${s.ledger_balanced ? "good" : "bad"}">${s.ledger_entries_total} entries · ${s.ledger_balanced ? "all balanced" : "UNBALANCED"}</span>
+    </div>
+    ${s.ledger.map(t => `<div class="txn ${fresh.has(t.id) ? "new" : ""}">
+      <div class="row" style="justify-content:space-between"><span class="tag ${t.type === "purchase" ? "price" : t.type === "payout" ? "pass" : "req"}">${t.type}</span><small class="mono">${esc(t.id)}</small></div>
+      ${t.entries.map(e => `<div class="e"><span>${esc(e.account)}</span><span class="num mono ${e.amount < 0 ? "neg" : "pos"}">${e.amount > 0 ? "+" : ""}${e.display}</span></div>`).join("")}
+      <div class="foot"><span>${new Date(t.time).toLocaleTimeString()}</span><span>sum = ${usd(t.sum)} ${t.sum === 0 ? "✓" : "✗"}</span></div>
+    </div>`).join("")}
+    ${s.payouts.length ? `<div><div class="eyebrow" style="margin-bottom:4px">PayPal payouts</div><div class="list">${s.payouts.map(p => `<div class="li"><div class="top"><b>${esc(p.publisher)}</b><span class="num">${p.amount}</span></div><small class="mono">batch ${esc(p.batch || "-")} · ${esc(p.status)}</small></div>`).join("")}</div></div>` : ""}`;
+}
+
+async function refreshState() {
+  try {
+    const s = await api("/v1/demo/state");
+    const prev = lastState;
+    renderOwner(s, prev); renderPublisher(s, prev); renderLedger(s);
+    lastState = s;
+    return s;
+  } catch (e) { $("#v-owner").innerHTML = `<div class="note">Could not load state: ${esc(e.message)}</div>`; }
+}
+
+/* ================= story ================= */
+const story = $("#story");
+function card(kind, html) {
+  $("#intro")?.remove();
+  const li = document.createElement("li");
+  li.className = "card k-" + kind;
+  li.innerHTML = html;
+  story.appendChild(li);
+  story.scrollTop = story.scrollHeight;
+  return li;
+}
+function httpBlock(h, body, title = "See the real HTTP") {
+  if (!h) return "";
+  const hdr = Object.entries(h.request_headers || {}).map(([k, v]) => `${k}: ${String(v).length > 70 ? String(v).slice(0, 70) + "…" : v}`).join("\n");
+  const rh = Object.entries(h.response_headers || {}).map(([k, v]) => `${k}: ${v}`).join("\n");
+  const b = body === undefined ? "" : "\n\n" + JSON.stringify(body, null, 2).slice(0, 4000);
+  return `<details><summary>${title} · ${h.method} ${esc(new URL(h.url).pathname)} → ${h.status} in ${h.ms} ms</summary><pre>${esc(`${h.method} ${h.url}\n${hdr}\n\nHTTP ${h.status}${rh ? "\n" + rh : ""}${b}`)}</pre></details>`;
+}
+function licenseText(l) { return `${l.type} · quote ≤ ${l.max_quote_words} words · ${l.ttl_hours}h pass${l.attribution_required ? " · cite" : ""}`; }
+function decodeJwt(t) { try { const p = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); return JSON.parse(atob(p + "===".slice((p.length + 3) % 4))); } catch { return null; } }
+function citeify(text) {
+  return esc(text).replace(/[\[【](res_[a-z0-9_]+)[\]】]/g, (m, id) => `<span class="cite" title="${id}">${esc(offers[id]?.title || id)}</span>`);
+}
+function markCopied(text, excerpts) {
+  // excerpts are lowercase word runs; find each run in the original text and wrap it
+  const toks = [...text.matchAll(/[A-Za-z0-9]+/g)].map(m => ({ w: m[0].toLowerCase(), s: m.index, e: m.index + m[0].length }));
+  const spans = [];
+  for (const ex of excerpts) {
+    const ws = ex.split(" ").filter(Boolean); if (!ws.length) continue;
+    for (let i = 0; i + ws.length <= toks.length; i++) {
+      if (ws.every((w, j) => toks[i + j].w === w)) { spans.push([toks[i].s, toks[i + ws.length - 1].e]); break; }
+    }
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  let out = "", pos = 0;
+  for (const [s, e] of spans) { if (s < pos) continue; out += esc(text.slice(pos, s)) + "<mark>" + esc(text.slice(s, e)) + "</mark>"; pos = e; }
+  return out + esc(text.slice(pos));
+}
+
+/* ================= run playback ================= */
+let offers = {}, offerCard = null, decisions = {}, buyCards = {}, draftCard = null, draftText = "", queue = [], pumping = false, es = null, running = false;
+let pathToId = {};
+
+async function handle(ev) {
+  const tr = $("#trace");
+  if (tr.firstElementChild?.classList.contains("note")) tr.innerHTML = "";
+  const d = document.createElement("div");
+  d.innerHTML = `<em>${esc(ev.event)}</em> ${esc(JSON.stringify(ev).slice(0, 600))}`;
+  tr.appendChild(d);
+
+  switch (ev.event) {
+    case "process":
+      $("#proc").textContent = `pid ${ev.pid} · ${ev.run_id}`;
+      card("req", `<div class="who">Platform started the agent process</div><h3>The real agent is running</h3>
+        <pre>${esc("$ " + ev.command)}</pre>`);
+      break;
+
+    case "start":
+      chapter("find"); showView("owner", true);
+      card("req", `<div class="who">Agent · ${esc(ev.agent?.name)}</div><h3>“${esc(ev.question)}”</h3>
+        <div class="row"><span class="tag">wallet ${esc(ev.wallet.display)}</span><span class="tag price">≤ ${usd(ev.budget.max_per_item)} per item</span>
+        <span class="tag price">≤ ${usd(ev.budget.max_per_day)} per day</span><span class="tag ai">thinks with ${esc(ev.reasoning)}</span>
+        ${ev.sloppy ? `<span class="tag bad">copy-paste mode</span>` : ""}</div>`);
+      await packet("agent", "platform", "GET /v1/me + wallet");
+      await packet("platform", "agent", `wallet ${ev.wallet.display}`, "price");
+      break;
+
+    case "discover":
+      await packet("agent", "platform", "GET /v1/catalog?q=…");
+      await packet("platform", "agent", `${ev.results.length} sources`);
+      ev.results.forEach(r => pathToId[r.path] = r.path);
+      card("req", `<div class="who">Agent → Platform catalog</div><h3>Found ${ev.results.length} possible sources</h3>
+        <p>Titles only. The content is locked behind each publisher's gateway.</p>${httpBlock(ev.http, ev.results)}`);
+      break;
+
+    case "offer": {
+      chapter("price");
+      const o = ev.body; offers[o.resource_id] = { ...o, path: ev.path };
+      await packet("agent", "gateway", `GET ${ev.path}`);
+      pulse("gateway", "no pass → price list", "price", 900);
+      packet("gateway", "platform", "lookup (Redis cache)", "req", 600);
+      await packet("gateway", "agent", `402 · ${o.price.display}`, "price");
+      if (!offerCard) {
+        offerCard = card("price", `<div class="who">Gateway → Agent</div><h3>Every door answered <span class="mono" style="color:var(--price)">402 Payment Required</span></h3>
+          <p>The gateway returns the price, the license terms and a free preview. No content leaves the publisher yet.</p>
+          <div class="tbl"><table class="offers"><thead><tr><th>Source</th><th>Price</th><th>License</th></tr></thead><tbody></tbody></table></div><div class="raw"></div>`);
+        $(".raw", offerCard).innerHTML = httpBlock(ev.http, o, "See a real 402 response");
+      }
+      $("tbody", offerCard).insertAdjacentHTML("beforeend", `<tr data-r="${esc(o.resource_id)}"><td>${esc(o.title)}<div class="pv">${esc(o.preview.excerpt)}</div></td>
+        <td class="p num">${o.price.display}</td><td><span class="tag pass">${esc(licenseText(o.license))}</span></td></tr>`);
+      story.scrollTop = story.scrollHeight;
+      break;
+    }
+
+    case "decisions": {
+      chapter("decide");
+      await packet("agent", "ai", "which are worth paying for?", "ai");
+      await packet("ai", "agent", `${ev.decisions.filter(x => x.buy).length} buy · ${ev.decisions.filter(x => !x.buy).length} skip`, "ai");
+      ev.decisions.forEach(x => decisions[x.resource_id] = x);
+      card("ai", `<div class="who">Agent's reasoning · ${esc(ev.by)}</div><h3>It decided what is worth the money</h3>
+        <div>${ev.decisions.map(x => `<div class="decision"><span class="v ${x.buy ? "buy" : "skip"}">${x.buy ? "BUY" : "SKIP"}</span>
+          <div><b>${esc(offers[x.resource_id]?.title || x.resource_id)}</b> <span class="tag price num">${offers[x.resource_id]?.price.display || ""}</span><div class="r">${esc(x.reason)}</div></div></div>`).join("")}</div>`);
+      break;
+    }
+
+    case "purchase": {
+      chapter("pay");
+      const o = offers[ev.resource_id] || { title: ev.resource_id, price: { display: "" } };
+      const b = ev.body; const ok = ev.http.status < 400;
+      await packet("agent", "platform", `POST /v1/purchases ${o.price.display}`, "price");
+      if (!ok) {
+        const msg = b?.detail?.message || JSON.stringify(b);
+        pulse("platform", "blocked by owner's rule", "bad");
+        await packet("platform", "agent", `${ev.http.status} refused`, "bad");
+        runPurchases.push({ title: o.title, note: `blocked`, reason: msg, ok: false });
+        card("bad", `<div class="who">Platform → Agent</div><h3>Purchase refused: ${esc(o.title)}</h3><p>${esc(msg)}</p>${httpBlock(ev.http, b)}`);
+        refreshState();
+        break;
+      }
+      const claims = decodeJwt(b.pass_token) || {};
+      if (b.already_owned) {
+        pulse("platform", "already owns a pass", "pass");
+      } else {
+        pulse("platform", `wallet −${usd(b.price)} → publisher`, "price");
+      }
+      await packet("platform", "agent", "signed pass (ES256)", "pass");
+      const fee = Math.floor(b.price * 1000 / 10000);
+      runPurchases.push({ title: o.title, note: b.already_owned ? "no charge" : usd(b.price), reason: decisions[ev.resource_id]?.reason, ok: true });
+      buyCards[ev.resource_id] = card("pass", `<div class="who">Agent → Platform · Idempotency-Key ${esc((ev.http.request_headers["idempotency-key"] || "").slice(0, 12))}…</div>
+        <h3>${b.already_owned ? "Already had a valid pass, so no second charge" : `Paid ${usd(b.price)} for “${esc(o.title)}”`}</h3>
+        ${b.already_owned ? "" : `<div class="row"><div class="split" style="width:260px"><i style="flex:${b.price - fee};background:var(--good)"></i><i style="flex:${fee};background:var(--price)"></i></div>
+          <span class="sub num">${usd(b.price - fee)} to the publisher · ${usd(fee)} Fairfetch fee</span></div>`}
+        <div class="row"><span class="tag pass">pass ${esc(claims.jti || b.grant_id)}</span><span class="tag pass">for ${esc(claims.path || "")}</span>
+          <span class="tag pass">${esc(claims.lic || "")}</span><span class="tag">expires ${claims.exp ? new Date(claims.exp * 1000).toLocaleString() : ""}</span></div>
+        ${httpBlock(ev.http, { ...b, pass_token: b.pass_token.slice(0, 48) + "…" })}
+        <details><summary>Decode the pass (JWT, signed by the platform)</summary><pre>${esc(JSON.stringify(claims, null, 2))}</pre></details>
+        <div class="readline"></div>`);
+      showView("ledger", true);
+      refreshState();
+      break;
+    }
+
+    case "read": {
+      chapter("read");
+      const id = Object.keys(offers).find(k => offers[k].path === ev.path);
+      await packet("agent", "gateway", "GET + X-Access-Pass", "pass");
+      pulse("gateway", "signature ✓ path ✓ expiry ✓", "pass", 1300);
+      await packet("gateway", "origin", `proxy ${ev.path}`);
+      await packet("origin", "gateway", `${ev.words} words`, "req", 700);
+      await packet("gateway", "agent", "200 OK + content", "good");
+      const host = buyCards[id];
+      const html = `<div style="display:grid;gap:6px;border-top:1px dashed var(--line);padding-top:8px">
+        <div class="row"><span class="tag good">200 OK in ${ev.http.ms} ms</span><span class="tag">${ev.words} words read</span>
+        ${Object.entries(ev.http.response_headers).map(([k, v]) => `<span class="tag mono">${esc(k)}: ${esc(v)}</span>`).join("")}</div>
+        <p class="draft">${esc(ev.excerpt)} …</p></div>`;
+      if (host) { $(".readline", host).innerHTML = html; story.scrollTop = story.scrollHeight; }
+      else card("good", html);
+      break;
+    }
+
+    case "draft":
+      chapter("write");
+      if (!ev.sloppy) { await packet("agent", "ai", "write a cited answer", "ai"); await packet("ai", "agent", "draft", "ai"); }
+      draftText = ev.text;
+      draftCard = card(ev.sloppy ? "bad" : "ai", `<div class="who">Agent · ${esc(ev.by)}</div>
+        <h3>${ev.sloppy ? "It pasted sentences straight from the articles" : "It wrote a draft answer"}</h3>
+        <div class="draft" id="draft-text">${esc(ev.text)}</div>`);
+      break;
+
+    case "guard": {
+      chapter("guard");
+      const r = ev.result; lastReceipt = r;
+      await packet("agent", "platform", "POST /v1/usage/check", "pass");
+      const v = r.violations_found || [];
+      if (v.length) {
+        pulse("platform", `${v.length} violations found`, "bad");
+        $("#draft-text").innerHTML = markCopied(draftText, v.filter(x => x.excerpt).map(x => x.excerpt));
+        card("bad", `<div class="who">License guard · Platform</div><h3>The guard caught ${v.length} license violation${v.length > 1 ? "s" : ""}</h3>
+          <div class="list">${v.map(x => `<div class="li"><div class="top"><b>${esc(offers[x.resource_id]?.title || x.resource_id)}</b><span class="tag bad">${esc(x.type.replace("_", " "))}</span></div>
+          <div class="why">${esc(x.message)}</div></div>`).join("")}</div><p class="note">Copied words are highlighted in the draft above.</p>`);
+        if (r.fixed_by === "llm_rewrite") { await packet("platform", "ai", "rewrite within license", "ai"); await packet("ai", "platform", "fixed answer", "ai"); }
+        card("ai", `<div class="who">License guard</div><h3>Fixed automatically by ${r.fixed_by === "llm_rewrite" ? "an AI rewrite" : "deterministic trimming"}</h3>
+          <p>Copied passages were paraphrased and every source is now cited. Then the answer was checked again.</p>`);
+      } else {
+        pulse("platform", "no violations", "good");
+      }
+      chapter("receipt");
+      pulse("platform", "receipt signed (ES256)", "pass");
+      await packet("platform", "agent", r.passed ? "PASSED · signed receipt" : "FAILED", r.passed ? "pass" : "bad");
+      showView("publisher", true);
+      refreshState();
+      break;
+    }
+
+    case "done": {
+      if (!ev.final_answer) { card("bad", `<h3>No sources were bought, so there is no answer</h3>`); break; }
+      const r = lastReceipt || {};
+      const c = card("good", `<div class="who">Final answer · receipt ${esc(ev.receipt_id)}</div>
+        <h3>${r.passed ? "License check passed. Here is the answer." : "License check failed."}</h3>
+        <div class="answer">${citeify(ev.final_answer)}</div>
+        <div class="row"><button class="small-btn" id="verify">Verify the receipt signature with the public key</button>
+          <span class="note">This is what a publisher can do on their own.</span></div>
+        <div class="verify-out"></div>
+        <div style="display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:10px">
+          <div class="eyebrow">Last step</div>
+          <div class="row"><button class="run" id="settle" style="padding:9px 16px;font-size:14px">Pay publishers with PayPal Payouts</button>
+          <span class="note">Sends each publisher's whole-cent earnings in one sandbox batch.</span></div>
+          <div class="settle-out"></div>
+        </div>`);
+      $("#verify", c).onclick = async () => {
+        const out = $(".verify-out", c);
+        try {
+          const v = await api("/v1/demo/verify", { method: "POST", body: JSON.stringify({ token: r.signature }) });
+          out.innerHTML = `<div class="row"><span class="tag ${v.valid ? "good" : "bad"}">${v.valid ? "Valid signature" : "Invalid: " + esc(v.error)}</span>
+            <span class="tag">${esc(v.header?.alg)} · key ${esc(v.header?.kid)}</span><span class="tag">issuer ${esc(v.claims?.iss)}</span></div>
+            <details open><summary>Signed receipt claims</summary><pre>${esc(JSON.stringify(v.claims, null, 2))}</pre></details>
+            <details><summary>Public key used</summary><pre>${esc(v.public_key)}</pre></details>`;
+        } catch (e) { out.innerHTML = `<p class="note">${esc(e.message)}</p>`; }
+        story.scrollTop = story.scrollHeight;
+      };
+      $("#settle", c).onclick = e => settle(e.target, $(".settle-out", c));
+      break;
+    }
+
+    case "error":
+      card("bad", `<h3>Something failed</h3><p class="mono">${esc(ev.message)}</p>`);
+      break;
+
+    case "closed":
+      finishRun();
+      break;
+  }
+}
+
+async function pump() {
+  if (pumping) return;
+  pumping = true;
+  while (queue.length) { await handle(queue.shift()); await sleep(REDUCED ? 0 : 380 / SPEED); }
+  pumping = false;
+}
+
+function finishRun() {
+  running = false; $("#run").disabled = false; $("#run").textContent = "Run again";
+  $("#proc").textContent = "agent process exited";
+  es?.close(); es = null;
+  refreshState(); loadHealth();
+}
+
+async function startRun() {
+  if (running) return;
+  running = true; $("#run").disabled = true; $("#run").textContent = "Agent running…";
+  story.innerHTML = ""; offers = {}; offerCard = null; decisions = {}; buyCards = {}; draftCard = null; runPurchases = []; lastReceipt = null;
+  $("#trace").innerHTML = ""; chapter(null);
+  if ($("#fresh").checked) {
+    try { const r = await api("/v1/demo/reset-passes", { method: "POST" });
+      card("req", `<div class="who">Operator</div><h3>Expired ${r.expired} old pass${r.expired === 1 ? "" : "es"}</h3><p>So this run has to pay again. In normal use a pass is valid for its license period.</p>`);
+    } catch (e) { card("bad", `<h3>Could not reset passes</h3><p>${esc(e.message)}</p>`); }
+  }
+  await refreshState();
+  const sloppy = $(`[data-mode="sloppy"]`).getAttribute("aria-pressed") === "true";
+  const url = `/v1/demo/run?q=${encodeURIComponent($("#question").value)}&sloppy=${sloppy}`;
+  es = new EventSource(url);
+  // EventSource reconnects on its own when a stream ends, which would start a second run. Close it ourselves.
+  let ended = false;
+  const end = () => { if (ended) return; ended = true; es?.close(); queue.push({ event: "closed" }); pump(); };
+  es.onmessage = m => {
+    let ev; try { ev = JSON.parse(m.data); } catch { return; }
+    if (ev.event === "closed") return end();
+    queue.push(ev); pump();
+  };
+  es.onerror = end;
+}
+
+async function settle(btn, out) {
+  chapter("payout"); btn.disabled = true; btn.textContent = "Calling PayPal Payouts…";
+  await packet("platform", "paypal", "POST /v1/payments/payouts", "price");
+  try {
+    const r = await api("/v1/demo/settle", { method: "POST" });
+    const list = r.payouts || [];
+    for (const p of list) await packet("paypal", "origin", `$${p.amount_usd} → ${p.publisher}`, "price");
+    out.innerHTML = list.length ? `<div class="row"><span class="tag good">PayPal batch ${esc(r.paypal_batch_id)}</span><span class="tag">${esc(r.status)}</span></div>
+      <div class="list">${list.map(p => `<div class="li"><div class="top"><b>${esc(p.publisher)}</b><span class="num" style="color:var(--good)">$${esc(p.amount_usd)}</span></div><small class="mono">${esc(p.email)}</small></div>`).join("")}</div>`
+      : `<p class="note">${esc(r.message || "Nothing to pay yet: balances under one cent stay owed until the next settlement.")}</p>`;
+    btn.textContent = "Paid";
+    showView("ledger", true);
+  } catch (e) { out.innerHTML = `<p class="note">PayPal said: ${esc(e.message)}</p>`; btn.disabled = false; btn.textContent = "Try PayPal Payouts again"; }
+  await refreshState();
+  story.scrollTop = story.scrollHeight;
+}
+
+async function startTopup() {
+  const msg = $("#topup-msg"), btn = $("#topup");
+  btn.disabled = true; msg.textContent = "Creating a PayPal order…";
+  try {
+    const r = await api("/v1/demo/topup", { method: "POST" });
+    await packet("platform", "paypal", "POST /v2/checkout/orders $5.00", "price");
+    msg.innerHTML = `<a href="${esc(r.approve_url)}" target="_blank" rel="noopener">Approve in PayPal sandbox ↗</a>, then
+      <button class="small-btn" id="capture">I approved it: capture</button>`;
+    $("#capture").onclick = async () => {
+      msg.textContent = "Capturing at PayPal…";
+      try {
+        const c = await api(`/v1/demo/topup/${encodeURIComponent(r.paypal_order_id)}/capture`, { method: "POST" });
+        await packet("paypal", "platform", `captured +${c.amount}`, "good");
+        msg.textContent = `Captured. ${c.amount} added to the wallet.`;
+        await refreshState(); showView("ledger", true);
+      } catch (e) { msg.textContent = `Not captured yet: ${e.message}`; }
+    };
+  } catch (e) { msg.textContent = e.message; btn.disabled = false; }
+}
+
+/* ================= controls ================= */
+$("#run").onclick = startRun;
+$$(".chip").forEach(c => c.onclick = () => { $("#question").value = c.dataset.q; });
+$$("[data-mode]").forEach(b => b.onclick = () => $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x === b)));
+$$("[data-speed]").forEach(b => b.onclick = () => { SPEED = +b.dataset.speed; $$("[data-speed]").forEach(x => x.setAttribute("aria-pressed", x === b)); });
+$("#question").addEventListener("keydown", e => { if (e.key === "Enter") startRun(); });
+
+loadHealth(); refreshState(); setInterval(loadHealth, 20000);
+</script>
+</body>
+</html>

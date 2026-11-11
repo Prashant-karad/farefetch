@@ -32,7 +32,7 @@ repairs them, and issues a **signed usage receipt** the publisher can verify. Pu
 |---|---|
 | **PayPal Checkout (Orders v2)** | Agent owners fund wallets: create order → buyer approves → server captures and verifies amount/currency/reference before crediting. `PayPal-Request-Id` makes create/capture idempotent. |
 | **PayPal Payouts** | Publishers' earnings are settled in one batch. Ledger reserves funds first; a PayPal failure posts reversal transactions. |
-| **Gemini (LLM)** | 1) agent's pay/skip decisions with reasons, 2) writing the cited answer, 3) license-guard rewrite of violating text, 4) plain-English budget rules → structured limits, 5) content uniqueness → suggested price. Every AI step has a deterministic fallback. |
+| **LLM (Groq by default, Gemini optional)** | 1) agent's pay/skip decisions with reasons, 2) writing the cited answer, 3) license-guard rewrite of violating text, 4) plain-English budget rules → structured limits, 5) content uniqueness → suggested price. Every AI step has a deterministic fallback. |
 
 ## Engineering highlights
 - **Double-entry ledger**: every transaction sums to zero, append-only, corrections by reversal; wallet can never go negative (atomic conditional `UPDATE` + DB `CHECK`).
@@ -43,7 +43,7 @@ repairs them, and issues a **signed usage receipt** the publisher can verify. Pu
 ## Run locally (Codespaces or any machine with Docker + Python 3.11+)
 
 ```bash
-cp .env.example .env          # fill PayPal sandbox + Gemini values
+cp .env.example .env          # fill PayPal sandbox + Groq values
 make keys                     # ES256 signing key pair
 make up                       # PostgreSQL + Redis
 make install                  # virtual environments for platform, gateway, agent
