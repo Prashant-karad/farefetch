@@ -5,7 +5,17 @@ import jwt
 from app.config import settings
 
 ISSUER = "fairfetch-platform"
-_PUBLIC_KEY = Path(settings.pass_public_key_path).read_text()
+
+
+def _load_public_key() -> str:
+    if settings.pass_public_key:
+        return settings.pass_public_key.replace("\\n", "\n")
+    if settings.pass_public_key_path:
+        return Path(settings.pass_public_key_path).read_text()
+    raise RuntimeError("Set PASS_PUBLIC_KEY (PEM text) or PASS_PUBLIC_KEY_PATH")
+
+
+_PUBLIC_KEY = _load_public_key()
 
 
 class PassError(Exception):
@@ -21,9 +31,9 @@ def verify_pass(token: str, *, agent_id: str, path: str) -> dict:
             token,
             _PUBLIC_KEY,
             algorithms=["ES256"],          # accept ONLY this algorithm (blocks "alg: none" attacks)
-            issuer=ISSUER,                 # must be issued by our platform
+            issuer=ISSUER,
             options={"require": ["exp", "iat", "sub", "jti", "path"]},
-            leeway=5,                      # tolerate 5s of clock difference between servers
+            leeway=5,                      # tolerate small clock differences between servers
         )
     except jwt.ExpiredSignatureError:
         raise PassError("pass_expired", "This pass has expired. Buy a new one.")

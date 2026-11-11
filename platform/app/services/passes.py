@@ -1,13 +1,11 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 import jwt
 
-from app.config import settings
+from app.services.keys import PRIVATE_KEY
 
 ISSUER = "fairfetch-platform"
 KEY_ID = "pass-v1"  # lets us rotate keys later without breaking old passes
-_PRIVATE_KEY = Path(settings.pass_private_key_path).read_text()
 
 
 def issue_pass(
@@ -15,13 +13,19 @@ def issue_pass(
 ) -> str:
     """A signed, tamper-proof time pass. Anyone with the PUBLIC key can verify it; only we can create it."""
     claims = {
-        "iss": ISSUER,              # who issued it
-        "sub": agent_id,            # who it belongs to
-        "jti": grant_id,            # unique ID (used for revocation)
+        "iss": ISSUER,
+        "sub": agent_id,
+        "jti": grant_id,
         "rid": resource_id,
-        "path": path,               # exactly which URL it unlocks
+        "path": path,
         "lic": license_id,
         "iat": datetime.now(timezone.utc),
-        "exp": expires_at,          # verifiers reject it after this time
+        "exp": expires_at,
     }
-    return jwt.encode(claims, _PRIVATE_KEY, algorithm="ES256", headers={"kid": KEY_ID})
+    return jwt.encode(claims, PRIVATE_KEY, algorithm="ES256", headers={"kid": KEY_ID})
+
+
+def sign_receipt(payload: dict) -> str:
+    """Usage receipts are signed with the same key so publishers can verify them with the public key."""
+    claims = {"iss": ISSUER, "typ": "usage_receipt", "iat": datetime.now(timezone.utc), **payload}
+    return jwt.encode(claims, PRIVATE_KEY, algorithm="ES256", headers={"kid": KEY_ID})

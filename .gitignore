@@ -17,3 +17,5 @@ node_modules/
 .next/
 keys/
 
+.logs/
+agent/runs/

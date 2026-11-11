@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fairfetch Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-grid.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-theme-quartz.css">
+<style>
+  :root { --bg:#f6f5f1; --ink:#1d1d1b; --muted:#6b6a65; --accent:#0b6e4f; --bad:#b3261e; --card:#fff; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:24px 32px 8px; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; }
+  h1 { margin:0; font-size:22px; letter-spacing:-0.01em; }
+  .tag { color:var(--muted); font-size:14px; }
+  .status { margin-left:auto; font-size:13px; padding:4px 10px; border-radius:999px; background:#e3f1ea; color:var(--accent); }
+  .status.bad { background:#f8e1df; color:var(--bad); }
+  nav { padding:8px 32px; display:flex; gap:8px; flex-wrap:wrap; }
+  nav button { border:1px solid #d6d4cc; background:var(--card); padding:8px 14px; border-radius:8px; cursor:pointer; font-size:14px; }
+  nav button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  main { padding:8px 32px 32px; }
+  section { display:none; }
+  section.on { display:block; }
+  h2 { font-size:15px; margin:18px 0 8px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .grid { height:340px; width:100%; }
+  .tall { height:480px; }
+  @media (max-width:640px){ header,nav,main{ padding-left:16px; padding-right:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fairfetch</h1>
+  <span class="tag">AI agents pay for content, and prove they respected the license</span>
+  <span id="ledger" class="status">ledger …</span>
+</header>
+<nav>
+  <button data-tab="publisher" class="on">Publisher view</button>
+  <button data-tab="owner">Agent owner view</button>
+  <button data-tab="money">Money (PayPal)</button>
+</nav>
+<main>
+  <section id="publisher" class="on">
+    <h2>Earnings</h2><div id="g-publishers" class="ag-theme-quartz grid" style="height:180px"></div>
+    <h2>Content: requests, sales, blocks</h2><div id="g-resources" class="ag-theme-quartz grid"></div>
+    <h2>Usage receipts (how agents used your content)</h2><div id="g-receipts" class="ag-theme-quartz grid"></div>
+  </section>
+  <section id="owner">
+    <h2>Wallets</h2><div id="g-wallets" class="ag-theme-quartz grid" style="height:140px"></div>
+    <h2>Purchases and the agent's reasons</h2><div id="g-purchases" class="ag-theme-quartz grid tall"></div>
+  </section>
+  <section id="money">
+    <h2>PayPal top-ups (money in)</h2><div id="g-topups" class="ag-theme-quartz grid"></div>
+    <h2>PayPal payouts (money out)</h2><div id="g-payouts" class="ag-theme-quartz grid"></div>
+  </section>
+</main>
+<script>
+const cols = rows => rows.length ? Object.keys(rows[0]).map(k => ({
+  field: k, headerName: k.replaceAll("_", " "), filter: true, sortable: true, resizable: true,
+  flex: ["ai_reason","items","title"].includes(k) ? 3 : 1, minWidth: 110,
+  wrapText: k === "ai_reason", autoHeight: k === "ai_reason",
+})) : [];
+const grids = {};
+function show(id, rows) {
+  if (grids[id]) {
+    if (!grids[id].getColumnDefs().length && rows.length) grids[id].setGridOption("columnDefs", cols(rows));
+    grids[id].setGridOption("rowData", rows); return;
+  }
+  grids[id] = agGrid.createGrid(document.getElementById(id), {
+    columnDefs: cols(rows), rowData: rows, pagination: rows.length > 12, paginationAutoPageSize: true,
+    overlayNoRowsTemplate: "<span>Nothing yet</span>",
+  });
+}
+async function load() {
+  const d = await (await fetch("v1/dashboard/data")).json();
+  const l = document.getElementById("ledger");
+  l.textContent = d.ledger_balanced ? "ledger balanced ✓" : "ledger UNBALANCED";
+  l.classList.toggle("bad", !d.ledger_balanced);
+  show("g-publishers", d.publishers); show("g-resources", d.resources); show("g-receipts", d.receipts);
+  show("g-wallets", d.wallets); show("g-purchases", d.purchases);
+  show("g-topups", d.topups); show("g-payouts", d.payouts);
+}
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button, section").forEach(e => e.classList.remove("on"));
+  b.classList.add("on"); document.getElementById(b.dataset.tab).classList.add("on");
+});
+load(); setInterval(load, 5000);
+</script>
+</body>
+</html>

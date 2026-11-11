@@ -74,8 +74,7 @@ async def purchase_pass(
         raise PurchaseError(404, "resource_not_found", f"No resource {resource_id}")
     license_ = await session.get(License, resource.license_id)
 
-    # 3. Lock the owner's wallet row. Purchases by the same owner now happen one at a time,
-    #    which makes the checks below safe from race conditions.
+    # 3. Lock the owner's wallet row: purchases by the same owner happen one at a time.
     wallet = await session.scalar(
         select(Account)
         .where(Account.type == "agent_wallet", Account.owner_id == agent.owner_id)
@@ -117,6 +116,9 @@ async def purchase_pass(
     if policy is not None:
         if resource.price > policy.max_per_item:
             await _fail(session, purchase, 403, "over_item_limit", "Price is above this agent's per-item limit")
+        if policy.approval_threshold is not None and resource.price > policy.approval_threshold:
+            await _fail(session, purchase, 403, "approval_required",
+                        "Price is above the owner's approval threshold; ask the owner first")
         start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)  # UTC day
         spent_today = await session.scalar(
             select(func.coalesce(func.sum(Purchase.price), 0))
@@ -146,5 +148,5 @@ async def purchase_pass(
     session.add(grant)
     purchase.status = "completed"
     purchase.transaction_id = txn.id
-    await session.commit()  # everything above becomes permanent together
+    await session.commit()
     return _pass_response(purchase, grant, resource)

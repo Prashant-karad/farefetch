@@ -25,9 +25,7 @@ async def get_resource(path: str) -> dict | None:
 
     resp = await http.get("/internal/resources/lookup", params={"path": path})
     if resp.status_code == 404:
-        # Negative caching: remember "not found" too, so a bot hammering
-        # random URLs can't hit the platform on every request.
-        await redis_client.set(key, MISSING, ex=settings.resource_cache_seconds)
+        await redis_client.set(key, MISSING, ex=settings.resource_cache_seconds)  # negative caching
         return None
     resp.raise_for_status()
     data = resp.json()
@@ -44,7 +42,7 @@ async def verify_agent(api_key: str) -> dict | None:
 
     resp = await http.post("/internal/agents/verify", json={"api_key": api_key})
     if resp.status_code == 401:
-        await redis_client.set(key, MISSING, ex=10)  # short, so a fixed key works again quickly
+        await redis_client.set(key, MISSING, ex=10)
         return None
     resp.raise_for_status()
     data = resp.json()
@@ -57,14 +55,11 @@ async def log_access(**fields) -> None:
     try:
         await http.post("/internal/access-logs", json=fields)
     except httpx.HTTPError:
-        pass  # production: push to a queue and retry instead of dropping
+        pass
+
 
 async def is_revoked(grant_id: str) -> bool:
-    """Signed passes can't be 'unsigned', so early cancellation uses a Redis deny-list.
-
-    Fail-open: if Redis is down we skip this check and rely on the signature + expiry.
-    For paid content that's a deliberate trade-off (availability over strictness).
-    """
+    """Early cancellation via a Redis deny-list. Fail-open if Redis is down (deliberate trade-off)."""
     try:
         return await redis_client.exists(f"gw:revoked:{grant_id}") == 1
     except Exception:

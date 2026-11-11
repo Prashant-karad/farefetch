@@ -15,7 +15,7 @@ _token_expires_at = 0.0
 
 
 async def _access_token() -> str:
-    """OAuth2 client-credentials: trade our Client ID + Secret for a short-lived access token.
+    """OAuth2 client-credentials: trade Client ID + Secret for a short-lived access token.
     Cached in memory and refreshed a minute before it expires."""
     global _token, _token_expires_at
     if _token and time.monotonic() < _token_expires_at - 60:
@@ -77,3 +77,32 @@ def approval_link(order: dict) -> str:
         if link.get("rel") in ("payer-action", "approve"):
             return link["href"]
     raise PayPalError("PayPal order has no approval link")
+
+
+async def create_payout_batch(*, batch_id: str, items: list[dict]) -> dict:
+    """PayPal Payouts: pay many recipients in one batch.
+    items: [{"payout_id", "email", "amount_value" (e.g. "0.18")}].
+    sender_batch_id makes the batch idempotent on PayPal's side."""
+    return await _request(
+        "POST",
+        "/v1/payments/payouts",
+        request_id=f"payout-{batch_id}",
+        json={
+            "sender_batch_header": {
+                "sender_batch_id": batch_id,
+                "email_subject": "You have earnings from Fairfetch",
+                "email_message": "AI agents paid to use your content.",
+            },
+            "items": [{
+                "recipient_type": "EMAIL",
+                "receiver": item["email"],
+                "amount": {"value": item["amount_value"], "currency": "USD"},
+                "sender_item_id": item["payout_id"],
+                "note": "Fairfetch publisher earnings",
+            } for item in items],
+        },
+    )
+
+
+async def get_payout_batch(paypal_batch_id: str) -> dict:
+    return await _request("GET", f"/v1/payments/payouts/{paypal_batch_id}")

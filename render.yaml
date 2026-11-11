@@ -1,0 +1,78 @@
+# Render Blueprint: Dashboard > New > Blueprint > pick this repo.
+# After the first deploy, fill the "sync: false" values in each service's Environment tab.
+databases:
+  - name: fairfetch-db
+    plan: free
+    databaseName: agentgate
+
+services:
+  - type: keyvalue
+    name: fairfetch-redis
+    plan: free
+    ipAllowList: []          # private network only
+
+  - type: web
+    name: fairfetch-origin
+    runtime: python
+    plan: free
+    rootDir: demo-sites/blog
+    buildCommand: pip install fastapi "uvicorn[standard]"
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+
+  - type: web
+    name: fairfetch-platform
+    runtime: python
+    plan: free
+    rootDir: platform
+    healthCheckPath: /health
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && python -m scripts.seed && python -m scripts.setup_demo && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: fairfetch-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: fairfetch-redis, property: connectionString }
+      - key: ORIGIN_URL
+        fromService: { type: web, name: fairfetch-origin, property: hostport }
+      - key: INTERNAL_TOKEN
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: PASS_PRIVATE_KEY
+        sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: PUBLIC_BASE_URL
+        sync: false          # e.g. https://fairfetch-platform.onrender.com
+      - key: PUBLISHER_A_PAYPAL_EMAIL
+        sync: false
+      - key: PUBLISHER_B_PAYPAL_EMAIL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: fairfetch-gateway
+    runtime: python
+    plan: free
+    rootDir: gateway
+    healthCheckPath: /health
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: fairfetch-redis, property: connectionString }
+      - key: PLATFORM_URL
+        fromService: { type: web, name: fairfetch-platform, property: hostport }
+      - key: ORIGIN_URL
+        fromService: { type: web, name: fairfetch-origin, property: hostport }
+      - key: INTERNAL_TOKEN
+        fromService: { type: web, name: fairfetch-platform, envVarKey: INTERNAL_TOKEN }
+      - key: PASS_PUBLIC_KEY
+        sync: false
+      - key: PUBLIC_PLATFORM_URL
+        sync: false          # e.g. https://fairfetch-platform.onrender.com

@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import text
 
 from app.db import engine
 from app.redis_client import redis_client
-from app.routers import agents, internal, purchases, topups, wallet
+from app.routers import admin, agents, catalog, dashboard, internal, purchases, topups, usage, wallet
 
 
 @asynccontextmanager
@@ -16,12 +16,14 @@ async def lifespan(app: FastAPI):
     await redis_client.aclose()
 
 
-app = FastAPI(title="Fairfetch Platform API", version="0.2.0", lifespan=lifespan)
-app.include_router(agents.router)
-app.include_router(internal.router)
-app.include_router(purchases.router)
-app.include_router(wallet.router)
-app.include_router(topups.router)
+app = FastAPI(title="Fairfetch Platform API", version="1.0.0", lifespan=lifespan)
+for r in (agents, internal, purchases, wallet, topups, usage, catalog, admin, dashboard):
+    app.include_router(r.router)
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse("/dashboard")
 
 
 @app.get("/health")
