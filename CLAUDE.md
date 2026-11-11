@@ -57,12 +57,15 @@ Deployment (render.yaml) only if time remains.
 Explain what each change does and why, and how it's done in real companies. Give terminal commands.
 Be honest about trade-offs and time.
 
-## Progress log (autonomous build, Nov 12 IST) — resume from here
-Goal: winning submission. Plan:
-1. [done] Demo content switched to LEARNING blogs: publishers Code Dojo (pub_code_dojo) + Learn Daily (pub_learn_daily),
-   API /api/job-trends. Old agri DB backed up in .backup/ (gitignored). DB must be re-seeded (fresh, wallet $0 → PayPal top-up).
-2. [in progress] Backend: platform/app/routers/product.py (scan, go-live, test-bot, publisher/owner views, rules, knock).
-3. Landing page `/` (static/index.html) with animated story; app `/app` (static/app.html) with Publisher + Agent-owner views;
-   `/live` stays as "Under the hood". Shared design: light paper, tickets (passes) + receipts (usage receipts).
-4. Gateway /.well-known/fairfetch.json. 5. Browser-test (playwright venv in scratchpad). 6. README, video script, Devpost draft.
-7. Commit + push after each milestone (no Co-Authored-By line).
+## Progress log (autonomous build, Nov 12 IST)
+DONE and pushed:
+- Demo content = LEARNING blogs: Code Dojo (pub_code_dojo) + Learn Daily (pub_learn_daily), API /api/job-trends.
+- Pages: `/` landing (static/index.html, canvas "gate" animation, live 402), `/app` (static/app.html: Agent owner +
+  Publisher with setup wizard/overview/content, demo guide strip), `/live` = under the hood. Shared ff.css / ff.js.
+- Backend: routers/product.py (scan, go-live, test-bot, publisher/owner views, rules, knock, licenses),
+  routers/demo.py (SSE agent run, state, verify, reset-passes, settle, topup + capture). Gateway /.well-known/fairfetch.json.
+- `make reset-demo` (fresh DB, writes agent key to .env; restart `make dev` after), `make dev-credit` (testing only).
+- docs/VIDEO_SCRIPT.md, docs/DEVPOST.md. Silent draft recording: .recordings/fairfetch-demo-draft.webm (gitignored).
+- Browser-tested (playwright venv in scratchpad): desktop, 400px phone, dark mode; ledger-check 0 rows.
+LEFT FOR THE USER: reset-demo → PayPal top-up on camera → record voice video → YouTube → Devpost.
+Known limits: scan works for any URL but only the demo site can go live; sites that block bots get a clear message.
