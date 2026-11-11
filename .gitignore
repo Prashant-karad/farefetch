@@ -19,3 +19,4 @@ keys/
 
 .logs/
 agent/runs/
+.backup/

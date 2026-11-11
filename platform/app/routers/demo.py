@@ -132,10 +132,10 @@ def sse(payload: dict) -> str:
 
 
 @router.get("/v1/demo/run")
-async def run_agent(q: str = "When should I sow soybean in Pune and how do I test my soil first?",
+async def run_agent(q: str = "How do I make my slow Python code faster, and which approach gives the biggest speed-up?",
                     sloppy: bool = False):
     """Starts the research agent and streams every step it takes (Server-Sent Events)."""
-    q = q.strip()[:300] or "How do I test my soil before sowing?"
+    q = q.strip()[:300] or "How do I learn Python fast?"
 
     async def stream():
         if _run_lock.locked():

@@ -33,18 +33,18 @@ async def main() -> None:
             await session.flush()
             print("Added license lic_data_1h (data may be quoted, 1-hour pass)")
 
-        if await session.scalar(select(Resource).where(Resource.path == "/api/mandi-prices")) is None:
+        if await session.scalar(select(Resource).where(Resource.path == "/api/job-trends")) is None:
             session.add(Resource(
-                id="res_api_mandi_prices", publisher_id="pub_krishi_today", path="/api/mandi-prices",
-                kind="api", title="Live mandi prices: onion, soybean, cotton (Maharashtra)", price=50,
+                id="res_api_job_trends", publisher_id="pub_code_dojo", path="/api/job-trends",
+                kind="api", title="Live developer job trends: demand for Python, JavaScript and SQL", price=50,
                 license_id="lic_data_1h",
-                preview="Today's modal prices (Rs/quintal) at Lasalgaon, Latur and Akola APMCs ...",
+                preview="This week's job postings and median salaries for Python, JavaScript and SQL developers ...",
                 word_count=60,
             ))
-            print("Added paid API resource /api/mandi-prices ($0.0050 per pass)")
+            print("Added paid API resource /api/job-trends ($0.0050 per pass)")
 
-        for pub_id, var in (("pub_krishi_today", "PUBLISHER_A_PAYPAL_EMAIL"),
-                            ("pub_monsoon_notes", "PUBLISHER_B_PAYPAL_EMAIL")):
+        for pub_id, var in (("pub_code_dojo", "PUBLISHER_A_PAYPAL_EMAIL"),
+                            ("pub_learn_daily", "PUBLISHER_B_PAYPAL_EMAIL")):
             email = env(var)
             if email:
                 (await session.get(Publisher, pub_id)).paypal_email = email

@@ -21,8 +21,8 @@ LICENSES = [
 
 # PayPal emails are placeholders; we replace them with sandbox accounts in M4.
 PUBLISHERS = {
-    "krishi-today": {"id": "pub_krishi_today", "name": "Krishi Today", "paypal_email": "publisher-a@example.com"},
-    "monsoon-notes": {"id": "pub_monsoon_notes", "name": "Monsoon Field Notes", "paypal_email": "publisher-b@example.com"},
+    "code-dojo": {"id": "pub_code_dojo", "name": "Code Dojo", "paypal_email": "publisher-a@example.com"},
+    "learn-daily": {"id": "pub_learn_daily", "name": "Learn Daily", "paypal_email": "publisher-b@example.com"},
 }
 
 
@@ -71,14 +71,14 @@ async def main() -> None:
             ))
             count += 1
 
-        owner = AgentOwner(name="Demo Research Lab", email="owner@example.com")
+        owner = AgentOwner(name="Maya's Study Assistant", email="owner@example.com")
         session.add(owner)
         await session.flush()  # assigns owner.id
 
         session.add(Account(type="agent_wallet", owner_id=owner.id))
 
         full_key, prefix, key_hash = generate_api_key()
-        agent = Agent(owner_id=owner.id, name="research-agent-1", api_key_prefix=prefix, api_key_hash=key_hash)
+        agent = Agent(owner_id=owner.id, name="study-agent", api_key_prefix=prefix, api_key_hash=key_hash)
         session.add(agent)
         await session.flush()
 

@@ -39,10 +39,10 @@ dev:             ## Run origin + platform + gateway together
 	./scripts/dev.sh
 
 agent:           ## Run the research agent (Q="your question")
-	cd agent && .venv/bin/python -m app.main "$(or $(Q),When should I sow soybean in Pune and how do I test my soil first?)"
+	cd agent && .venv/bin/python -m app.main "$(or $(Q),How do I make my slow Python code faster, and which approach gives the biggest speed-up?)"
 
 agent-sloppy:    ## Run the agent in copy-paste mode to demo the license guard
-	cd agent && .venv/bin/python -m app.main "$(or $(Q),How do I test my soil before sowing?)" --sloppy
+	cd agent && .venv/bin/python -m app.main "$(or $(Q),How do I learn Python fast?)" --sloppy
 
 topup:           ## Start a $5 PayPal sandbox top-up (open the approve_url)
 	curl -s -X POST $(P)/v1/topups -H "Authorization: Bearer $(API)" -H "Content-Type: application/json" -d '{"amount":"5.00"}' | python3 -m json.tool

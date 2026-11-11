@@ -56,3 +56,13 @@ Deployment (render.yaml) only if time remains.
 ## How the user likes to work
 Explain what each change does and why, and how it's done in real companies. Give terminal commands.
 Be honest about trade-offs and time.
+
+## Progress log (autonomous build, Nov 12 IST) — resume from here
+Goal: winning submission. Plan:
+1. [done] Demo content switched to LEARNING blogs: publishers Code Dojo (pub_code_dojo) + Learn Daily (pub_learn_daily),
+   API /api/job-trends. Old agri DB backed up in .backup/ (gitignored). DB must be re-seeded (fresh, wallet $0 → PayPal top-up).
+2. [in progress] Backend: platform/app/routers/product.py (scan, go-live, test-bot, publisher/owner views, rules, knock).
+3. Landing page `/` (static/index.html) with animated story; app `/app` (static/app.html) with Publisher + Agent-owner views;
+   `/live` stays as "Under the hood". Shared design: light paper, tickets (passes) + receipts (usage receipts).
+4. Gateway /.well-known/fairfetch.json. 5. Browser-test (playwright venv in scratchpad). 6. README, video script, Devpost draft.
+7. Commit + push after each milestone (no Co-Authored-By line).

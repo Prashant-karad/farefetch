@@ -5,7 +5,7 @@
   -> read the content -> write a cited answer -> license guard -> signed receipt.
 
 Run from agent/:
-  python -m app.main "When should I sow soybean in Pune, and how do I test soil first?"
+  python -m app.main "How do I make my slow Python code faster, and which approach gives the biggest speed-up?"
   python -m app.main "..." --sloppy      # deliberately copies text to show the license guard
 """
 
@@ -175,7 +175,7 @@ def write_answer(question: str, sources: list[dict], sloppy: bool) -> str:
                         f"max {s['license']['max_quote_words']} consecutive copied words)\n{s['text']}"
                         for s in sources)
     text = llm.generate_text(
-        "Answer the question for a farmer in 120-200 words using ONLY the sources. Write in your own words; "
+        "Answer the question clearly in 120-200 words using ONLY the sources. Write in your own words; "
         "do NOT copy more consecutive words than each license allows. Cite every source you use inline with "
         f"its marker, e.g. [res_x].\n\nQUESTION: {question}\n\nSOURCES:\n{block}"
     )

@@ -72,6 +72,25 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/.well-known/fairfetch.json")
+async def terms():
+    """Machine-readable price list, like robots.txt for paid content: agents can plan a budget before knocking."""
+    try:
+        resp = await pc.http.get("/v1/catalog", params={"limit": 50})
+        resp.raise_for_status()
+    except httpx.HTTPError:
+        return error(503, "platform_unavailable", "Price list unavailable. Try again shortly.", {"Retry-After": "5"})
+    return {
+        "protocol": "fairfetch/1",
+        "how_to_pay": {"status_code": 402, "purchase_url": f"{PUBLIC_PLATFORM}/v1/purchases",
+                       "pass_header": "X-Access-Pass", "pass_format": "JWT (ES256)"},
+        "currency": "USD", "unit": "usd_0.0001",
+        "resources": [{"path": r["path"], "title": r["title"], "kind": r["kind"], "publisher": r["publisher"],
+                       "price": r["price"], "price_display": format_usd(r["price"]), "license": r["license_id"]}
+                      for r in resp.json()],
+    }
+
+
 async def protect(path: str, request: Request, background: BackgroundTasks,
                   authorization: str | None, x_access_pass: str | None):
     user_agent = request.headers.get("user-agent")
