@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fairfetch</title>
+<meta name="description" content="A payment and license gateway for AI agents. Agents pay per read with PayPal and prove they used your work fairly.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/ff.css">
+<style>
+/* Layout: editorial landing. Full-bleed animated "toll gate" stage, then a sticky three-step explainer,
+   two-sided value, PayPal money loop, proof, CTA. */
+.wrap { max-width: 1240px; margin: 0 auto; width: 100%; }
+nav.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--paper) 82%, transparent); border-bottom: 1px solid transparent; transition: border-color .3s; }
+nav.top.scrolled { border-bottom-color: var(--line); }
+nav.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+nav.top .links { display: flex; gap: 22px; align-items: center; font-size: 14.5px; }
+nav.top .links a:not(.btn) { text-decoration: none; color: var(--ink-2); }
+nav.top .links a:not(.btn):hover { color: var(--ink); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 31; background: var(--paper); }
+
+/* hero */
+.hero { padding-block: 40px 26px; display: grid; gap: 26px; }
+.hero h1 { margin: 0; font: 850 clamp(40px, 6.4vw, 84px)/.95 var(--display); font-variation-settings: "wdth" 118;
+  letter-spacing: -.035em; text-wrap: balance; max-width: 15ch; }
+.hero h1 .mark { position: relative; white-space: nowrap; }
+.hero h1 .mark::after { content: ""; position: absolute; left: -.04em; right: -.04em; bottom: .06em; height: .26em; background: var(--ticket);
+  z-index: -1; transform-origin: left; animation: swipe 1s .4s cubic-bezier(.2,.9,.2,1) both; }
+@keyframes swipe { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.hero .lede { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px 48px; align-items: end; }
+.hero p { margin: 0; font-size: clamp(17px, 1.6vw, 20px); color: var(--ink-2); max-width: 56ch; }
+.hero .ctas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+
+/* stage */
+.stage { position: relative; border-radius: 22px; overflow: hidden; background: var(--sheet); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.stage canvas { display: block; width: 100%; height: clamp(340px, 42vw, 500px); }
+.stage .labels { position: absolute; inset: 14px 18px auto; display: flex; justify-content: space-between; pointer-events: none; }
+.stage .ticker { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between;
+  align-items: center; font: 500 12.5px var(--mono); color: var(--muted); pointer-events: none; }
+.stage .ticker b { color: var(--ink); font-weight: 600; }
+.stage .sim { font-size: 11px; opacity: .8; }
+
+/* problem */
+.problem { padding-block: 110px 40px; display: grid; gap: 18px; }
+.problem p { margin: 0; font: 700 clamp(28px, 4.4vw, 58px)/1.06 var(--display); font-variation-settings: "wdth" 112; letter-spacing: -.025em; max-width: 22ch; text-wrap: balance; }
+.problem p.dim { color: var(--muted); }
+.problem p .strike { position: relative; }
+.problem p .strike::after { content: ""; position: absolute; left: 0; right: 0; top: 54%; height: .09em; background: var(--red); transform: scaleX(0); transform-origin: left; transition: transform .8s .2s cubic-bezier(.2,.9,.2,1); }
+.problem.seen p .strike::after { transform: scaleX(1); }
+.problem p.answer { color: var(--blue); }
+
+/* steps */
+.how { padding-block: 70px 40px; }
+.how h2, .sides h2, .money h2, .proof h2 { margin: 0 0 8px; font: 800 clamp(30px, 4vw, 52px)/1 var(--display); font-variation-settings: "wdth" 115; letter-spacing: -.03em; text-wrap: balance; }
+.how .intro, .sides .intro, .money .intro { color: var(--ink-2); max-width: 60ch; margin: 0 0 30px; font-size: 18px; }
+.how-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 48px; align-items: start; }
+.steps { display: grid; }
+.step { min-height: 72vh; display: grid; align-content: center; gap: 12px; padding-block: 24px; opacity: .35; transition: opacity .4s; }
+.step.on { opacity: 1; }
+.step .n { font: 600 13px var(--mono); color: var(--blue); }
+.step h3 { margin: 0; font: 800 clamp(28px, 3vw, 40px)/1.05 var(--display); font-variation-settings: "wdth" 115; letter-spacing: -.025em; }
+.step p { margin: 0; color: var(--ink-2); font-size: 18px; max-width: 46ch; }
+.step .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.viz { position: sticky; top: calc(90px + env(safe-area-inset-top, 0px)); height: min(560px, 78vh); }
+.viz .panel { position: absolute; inset: 0; display: grid; align-content: center; gap: 14px; opacity: 0; transform: translateY(18px) scale(.98);
+  transition: opacity .45s, transform .55s cubic-bezier(.2,.9,.2,1); pointer-events: none; }
+.viz .panel.on { opacity: 1; transform: none; pointer-events: auto; }
+.term { background: #0f1115; color: #d7dbe2; border-radius: 16px; padding: 16px 18px; font: 13px/1.6 var(--mono); box-shadow: var(--shadow); overflow: hidden; min-width: 0; }
+.term .bar { display: flex; gap: 6px; margin-bottom: 10px; }
+.term .bar i { width: 10px; height: 10px; border-radius: 50%; background: #3a3f48; }
+.term .cmd { color: #9aa3ff; overflow-wrap: anywhere; }
+.term .st { color: #ffd84a; font-weight: 600; }
+.term pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #c6ccd6; max-height: 300px; overflow: hidden; }
+.term .live { float: right; font-size: 11px; color: #3fcf8e; }
+.paybox { background: var(--sheet); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 12px; box-shadow: var(--shadow); }
+.split-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; }
+.claims { font: 12px/1.6 var(--mono); background: var(--sheet-2); border-radius: 10px; padding: 10px 12px; color: var(--ink-2); overflow-wrap: anywhere; }
+.redline { background: var(--sheet); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; font-size: 15px; line-height: 1.7; box-shadow: var(--shadow); }
+.redline ins { text-decoration: none; background: var(--green-soft); color: var(--green); border-radius: 3px; padding: 0 2px; }
+.viz-mobile-note { display: none; }
+
+/* sides */
+.sides { padding-block: 90px 30px; }
+.sides-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.side { padding: 26px; display: grid; gap: 16px; align-content: start; }
+.side h3 { margin: 0; font: 800 26px/1.1 var(--display); font-variation-settings: "wdth" 112; letter-spacing: -.02em; }
+.side ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.side li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; color: var(--ink-2); }
+.side li::before { content: "→"; color: var(--blue); font-weight: 700; }
+.mock { background: var(--sheet-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; min-height: 186px; }
+.mock .url { display: flex; gap: 8px; align-items: center; background: var(--sheet); border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; font: 13px var(--mono); }
+.mock .url .caret { width: 2px; height: 16px; background: var(--blue); animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.mock .row { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 13.5px; padding: 6px 2px; border-top: 1px solid var(--line); }
+.mock .row span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mock .row.in { animation: rowin .5s cubic-bezier(.2,.9,.2,1) both; }
+@keyframes rowin { from { transform: translateX(-10px); opacity: 0; } to { transform: none; opacity: 1; } }
+.mock .tag { background: var(--ticket); color: var(--ticket-ink); font: 600 12px var(--mono); border-radius: 5px; padding: 2px 7px; animation: drop .5s .25s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes drop { from { transform: translateY(-14px) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.rules { display: flex; flex-wrap: wrap; gap: 6px; }
+.walletline { display: flex; justify-content: space-between; align-items: baseline; }
+.walletline b { font: 800 30px var(--display); font-variation-settings: "wdth" 115; }
+
+/* money loop */
+.money { padding-block: 90px 30px; }
+.loop { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; align-items: stretch; }
+.loop .node { padding: 18px; display: grid; gap: 6px; align-content: start; position: relative; }
+.loop .node b { font: 800 19px/1.15 var(--display); font-variation-settings: "wdth" 110; }
+.loop .node span { color: var(--muted); font-size: 14px; }
+.loop .node .k { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--blue); }
+.loop .edge { display: grid; place-items: center; position: relative; }
+.loop .edge::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--line-2); }
+.loop .edge .coin { width: 16px; height: 16px; border-radius: 50%; background: var(--ticket); box-shadow: 0 0 0 3px var(--paper); position: relative; animation: coin 2.4s linear infinite; }
+@keyframes coin { from { transform: translateX(-60px); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } to { transform: translateX(60px); opacity: 0; } }
+.loop .edge small { position: absolute; top: calc(50% + 12px); font: 500 11.5px var(--mono); color: var(--muted); text-align: center; }
+.ledger-strip { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* proof */
+.proof { padding-block: 90px 30px; }
+.proof-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 24px; }
+.proof-card { padding: 22px; display: grid; gap: 10px; align-content: start; }
+.proof-card h3 { margin: 0; font: 800 20px/1.15 var(--display); font-variation-settings: "wdth" 110; }
+.proof-card p { margin: 0; color: var(--ink-2); font-size: 15px; }
+
+/* cta */
+.final { padding-block: 110px 80px; text-align: left; display: grid; gap: 22px; }
+.final h2 { margin: 0; font: 850 clamp(40px, 7vw, 92px)/.95 var(--display); font-variation-settings: "wdth" 120; letter-spacing: -.035em; text-wrap: balance; max-width: 14ch; }
+footer { border-top: 1px solid var(--line); padding-block: 26px calc(26px + env(safe-area-inset-bottom, 0px)); color: var(--muted); font-size: 13.5px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; }
+
+@media (max-width: 960px) {
+  nav.top .links a.hide-sm { display: none; }
+  .hero .lede { grid-template-columns: minmax(0, 1fr); }
+  .hero .ctas { justify-content: flex-start; }
+  .how-grid { grid-template-columns: minmax(0, 1fr); }
+  .step { min-height: auto; opacity: 1; }
+  .viz { position: static; height: auto; display: grid; gap: 16px; }
+  .viz .panel { position: static; opacity: 1; transform: none; }
+  .sides-grid, .proof-grid { grid-template-columns: minmax(0, 1fr); }
+  .loop { grid-template-columns: minmax(0, 1fr); }
+  .loop .edge { height: 54px; }
+  .loop .edge::before { left: 50%; right: auto; top: 0; bottom: 0; border-top: 0; border-left: 2px dashed var(--line-2); }
+  .loop .edge .coin { animation-name: coin-v; }
+  .loop .edge small { top: auto; left: calc(50% + 16px); }
+}
+@keyframes coin-v { from { transform: translateY(-24px); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } to { transform: translateY(24px); opacity: 0; } }
+</style>
+</head>
+<body>
+<nav class="top gutter" id="nav">
+  <div class="wrap">
+    <a class="wordmark" href="/"><span class="glyph" aria-hidden="true"></span>fairfetch</a>
+    <div class="links">
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-sm" href="#sides">Publishers</a>
+      <a class="hide-sm" href="#money">PayPal</a>
+      <a class="hide-sm" href="/live">Under the hood</a>
+      <a class="btn btn-ink btn-sm" href="/app">Open the app <span class="arrow">→</span></a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero gutter">
+  <div class="wrap" style="display:grid;gap:26px">
+    <span class="eyebrow">HTTP 402 Payment Required, finally put to work</span>
+    <h1>AI reads your work. Now it <span class="mark">pays</span> and plays fair.</h1>
+    <div class="lede">
+      <p>Fairfetch is a gateway you put in front of any website. AI agents get a price instead of a free page, pay per read from a PayPal-funded wallet, and every answer they write is checked against your license before it ships.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="/app#publisher-setup">Protect my site <span class="arrow">→</span></a>
+        <a class="btn btn-ghost" href="/app#agent">Give my agent a wallet</a>
+      </div>
+    </div>
+    <div class="stage" aria-label="Animation: AI agents stop at the Fairfetch gate, pay a small price, get a pass, read, and publishers earn">
+      <canvas id="gate"></canvas>
+      <div class="labels"><span class="eyebrow">AI agents</span><span class="eyebrow">Fairfetch gateway</span><span class="eyebrow">Publishers</span></div>
+      <div class="ticker"><span>priced <b id="t-priced">0</b> · paid reads <b id="t-paid">0</b> · caught copying <b id="t-caught">0</b></span>
+        <span>publishers earned <b id="t-earned">$0.00</b> <span class="sim">· illustration; the real flow runs in the app</span></span></div>
+    </div>
+  </div>
+</header>
+
+<section class="problem gutter" id="problem">
+  <div class="wrap" style="display:grid;gap:18px">
+    <p>AI assistants answer questions by reading what people wrote.</p>
+    <p class="dim">The writers get <span class="strike">no visit</span>, <span class="strike">no credit</span> and <span class="strike">no money</span>.</p>
+    <p class="answer">Fairfetch puts a price, a license and a receipt on every read.</p>
+  </div>
+</section>
+
+<section class="how gutter" id="how">
+  <div class="wrap">
+    <span class="eyebrow">How it works</span>
+    <h2>Knock. Pay. Prove.</h2>
+    <p class="intro">Three steps between an AI agent and your page. The first one below is live: it is what our gateway answered a bot a moment ago.</p>
+    <div class="how-grid">
+      <div class="steps">
+        <div class="step on" data-step="0">
+          <span class="n">01 · Knock</span>
+          <h3>The agent gets a price, not a page.</h3>
+          <p>Every unpaid request gets <b>HTTP 402 Payment Required</b> with the price, the license terms and a short preview, so the agent can decide if the page is worth it.</p>
+          <div class="tags"><span class="chip mono">402</span><span class="chip">price per read</span><span class="chip">license terms</span><span class="chip">free preview</span></div>
+        </div>
+        <div class="step" data-step="1">
+          <span class="n">02 · Pay</span>
+          <h3>It pays from a wallet its owner funded with PayPal.</h3>
+          <p>The owner tops up with PayPal Checkout and sets rules in plain English. Each read costs cents, the publisher gets 90 percent, and a signed pass lets the agent in for the license period.</p>
+          <div class="tags"><span class="chip blue">PayPal Checkout</span><span class="chip">spending rules</span><span class="chip ticket">signed pass</span><span class="chip">never charged twice</span></div>
+        </div>
+        <div class="step" data-step="2">
+          <span class="n">03 · Prove</span>
+          <h3>Its answer is checked against your license.</h3>
+          <p>Before the answer ships, Fairfetch checks it for copied passages, missing credit and expired passes. Problems are fixed automatically, and you get a signed receipt showing exactly how your work was used.</p>
+          <div class="tags"><span class="chip red">copying caught</span><span class="chip green">auto-fixed</span><span class="chip">signed receipt</span><span class="chip blue">paid via PayPal Payouts</span></div>
+        </div>
+      </div>
+      <div class="viz" id="viz">
+        <div class="panel on" data-panel="0">
+          <div class="term">
+            <div class="bar"><i></i><i></i><i></i><span class="live" id="k-live">● fetching live…</span></div>
+            <div class="cmd">$ curl -i <span id="k-url">/blog/python-speed-benchmark</span></div>
+            <div><span class="st" id="k-status">HTTP/1.1 402 Payment Required</span></div>
+            <pre id="k-body">{ "price": { "display": "$0.0400" }, ... }</pre>
+          </div>
+        </div>
+        <div class="panel" data-panel="1">
+          <div class="paybox">
+            <div class="row" style="display:flex;justify-content:space-between;align-items:baseline"><span class="eyebrow">Wallet</span><span class="mono num">$5.0000 → <b>$4.9600</b></span></div>
+            <div class="split-bar"><i style="flex:90;background:var(--green)"></i><i style="flex:10;background:var(--blue)"></i></div>
+            <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-2)"><span>$0.0360 to the publisher</span><span>$0.0040 Fairfetch fee</span></div>
+          </div>
+          <div id="viz-ticket"></div>
+          <div class="claims">{ "iss": "fairfetch-platform", "sub": "agt_…", "rid": "res_python_speed_benchmark",<br>&nbsp;&nbsp;"lic": "lic_read_24h", "exp": +24h, "alg": "ES256" }</div>
+        </div>
+        <div class="panel" data-panel="2">
+          <div class="redline">The <span class="redpen">plain loop took 1.9 seconds. Moving the work into a list comprehension brought it to 1.2 seconds</span> <ins>loop version was the slowest, and NumPy was about 47 times faster [Code Dojo]</ins> …</div>
+          <div style="max-width:340px" id="viz-receipt"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sides gutter" id="sides">
+  <div class="wrap">
+    <span class="eyebrow">Two sides, one transaction</span>
+    <h2>Built for the people who write, and the people who ask.</h2>
+    <p class="intro">Publishers set the terms. Agent owners set the budget. Fairfetch makes both hold.</p>
+    <div class="sides-grid">
+      <article class="sheet side">
+        <span class="eyebrow">For publishers</span>
+        <h3>Paste your link. Priced in a minute.</h3>
+        <div class="mock" id="mock-pub">
+          <div class="url"><span style="color:var(--muted)">https://</span><span id="typed"></span><span class="caret"></span></div>
+          <div id="mock-rows"></div>
+        </div>
+        <ul>
+          <li>We read your sitemap and an AI suggests a fair price for every page.</li>
+          <li>Pick a license per page: read, quote or data. Free, charge or block AI.</li>
+          <li>Get paid through PayPal Payouts, with a signed receipt for every use.</li>
+        </ul>
+        <a class="btn btn-primary" href="/app#publisher-setup" style="justify-self:start">Protect my site <span class="arrow">→</span></a>
+      </article>
+      <article class="sheet side">
+        <span class="eyebrow">For agent owners</span>
+        <h3>A wallet with rules your agent can't break.</h3>
+        <div class="mock">
+          <div class="walletline"><span class="eyebrow">Wallet · study-agent</span><b class="num" id="mock-wallet">$5.0000</b></div>
+          <div class="rules"><span class="chip blue">max 5¢ per article</span><span class="chip blue">$1 a day</span><span class="chip blue">ask me above 3¢</span></div>
+          <div class="mono" style="font-size:12.5px;color:var(--muted)">“Never spend more than a dollar a day, and ask me before anything over 3 cents.”</div>
+          <div id="mock-tix" style="display:grid;gap:6px"></div>
+        </div>
+        <ul>
+          <li>Top up with PayPal. Write spending rules in plain English.</li>
+          <li>The agent reads previews, buys only what adds something, and says why.</li>
+          <li>Answers come back cited and license-clean, with a receipt to prove it.</li>
+        </ul>
+        <a class="btn btn-ghost" href="/app#agent" style="justify-self:start">Give my agent a wallet <span class="arrow">→</span></a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="money gutter" id="money">
+  <div class="wrap">
+    <span class="eyebrow">Money loop</span>
+    <h2>PayPal in. PayPal out. Every cent accounted for.</h2>
+    <p class="intro">Owners fund wallets with PayPal Checkout. Publishers are paid with PayPal Payouts. In between, a double-entry ledger records every cent, and every transaction sums to zero.</p>
+    <div class="loop sheet">
+      <div class="node"><span class="k">PayPal Checkout</span><b>Owner tops up $5</b><span>Approved in PayPal, captured and verified.</span></div>
+      <div class="edge"><span class="coin"></span><small>capture</small></div>
+      <div class="node"><span class="k">Agent wallet</span><b>Pays cents per read</b><span>Only within the owner's rules.</span></div>
+      <div class="edge"><span class="coin"></span><small>90 / 10 split</small></div>
+      <div class="node"><span class="k">PayPal Payouts</span><b>Publisher gets paid</b><span>Whole cents, one batch, to their PayPal.</span></div>
+    </div>
+    <div class="ledger-strip"><span class="chip mono">wallet −$0.0400</span><span class="chip mono green">publisher +$0.0360</span><span class="chip mono blue">fee +$0.0040</span><span class="chip mono">sum = $0.0000 ✓</span></div>
+  </div>
+</section>
+
+<section class="proof gutter">
+  <div class="wrap">
+    <span class="eyebrow">Proof, not promises</span>
+    <h2>Every step leaves something you can verify.</h2>
+    <div class="proof-grid">
+      <div class="sheet proof-card"><span class="chip ticket" style="justify-self:start">signed pass</span><h3>Passes can't be forged.</h3><p>Each pass is an ES256-signed token for one agent, one page and one time window. The gateway checks it with a public key only.</p></div>
+      <div class="sheet proof-card"><span class="chip green" style="justify-self:start">signed receipt</span><h3>Receipts anyone can check.</h3><p>Usage receipts are signed the same way, so a publisher can verify how their work was used without trusting us.</p></div>
+      <div class="sheet proof-card"><span class="chip blue" style="justify-self:start">idempotent</span><h3>Never charged twice.</h3><p>Retries reuse the same key, payments and PayPal calls are idempotent, and the ledger is append-only.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="final gutter">
+  <div class="wrap" style="display:grid;gap:22px">
+    <h2>Put a price on the door.</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <a class="btn btn-primary" href="/app#publisher-setup">Protect my site <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href="/app#agent">Run the agent</a>
+      <a class="btn btn-ghost" href="/live">See it under the hood</a>
+    </div>
+  </div>
+</section>
+
+<footer class="gutter"><div class="wrap"><span>Fairfetch · built for the PayPal AI Hackathon</span><span>PayPal sandbox · demo articles are sample content</span></div></footer>
+
+<script src="/static/ff.js"></script>
+<script>
+"use strict";
+const { $, $$, esc, REDUCED } = FF;
+addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY > 8), { passive: true });
+
+/* ================= The Gate: hero animation (canvas) ================= */
+(() => {
+  const cv = $("#gate"), ctx = cv.getContext("2d");
+  let W = 0, H = 0, DPR = 1, C = {}, running = true;
+  const read = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function colors() { C = { sheet: read("--sheet"), sheet2: read("--sheet-2"), ink: read("--ink"), muted: read("--muted"), line: read("--line"),
+    line2: read("--line-2"), blue: read("--blue"), ticket: read("--ticket"), tink: read("--ticket-ink"), red: read("--red"), green: read("--green"), paper: read("--paper") }; }
+  function size() { DPR = Math.min(2, devicePixelRatio || 1); const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
+  colors(); size();
+  addEventListener("resize", size);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", colors);
+
+  const PATHS = [["/blog/python-speed-benchmark", 400, 0], ["/blog/sql-index-explained", 350, 0], ["/blog/learn-python-fast", 150, 1],
+                 ["/blog/python-profiling-guide", 300, 0], ["/blog/spaced-repetition", 200, 1], ["/api/job-trends", 50, 0],
+                 ["/blog/coding-interview-plan", 200, 1], ["/blog/git-undo-mistakes", 250, 0], ["/blog/compound-interest", 150, 1]];
+  const AGENTS = ["study-agent", "research-bot", "answer-engine", "tutor-ai", "news-agent"];
+  const pubs = [{ name: "Code Dojo", earned: 0, flash: 0 }, { name: "Learn Daily", earned: 0, flash: 0 }];
+  const stats = { priced: 0, paid: 0, caught: 0, earned: 0 };
+  let cards = [], floats = [], coins = [], t0 = performance.now(), last = t0, nextSpawn = 0, seq = 0;
+  const lanes = () => [0.30, 0.50, 0.70].map(f => H * f);
+  const gateX = () => W * 0.5;
+  const small = () => W < 640;
+
+  function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  const ease = k => 1 - Math.pow(1 - Math.min(1, Math.max(0, k)), 3);
+
+  function spawn(now) {
+    const laneIdx = seq % 3, p = PATHS[(seq * 7) % PATHS.length];
+    const busy = cards.some(c => c.lane === laneIdx && c.x < 40 + (small() ? 120 : 190));
+    if (busy) return;
+    cards.push({ id: seq, lane: laneIdx, path: p[0], price: p[1], pub: p[2], agent: AGENTS[seq % AGENTS.length],
+      x: -200, phase: "approach", t: now, paid: false, caught: seq % 5 === 3, stamp: null, alpha: 1 });
+    seq++;
+  }
+
+  function step(now) {
+    const dt = Math.min(64, now - last) / 1000; last = now;
+    const gx = gateX(), cw = small() ? 120 : 190, speed = small() ? 110 : 160;
+    if (now > nextSpawn) { spawn(now); nextSpawn = now + 650 + Math.random() * 500; }
+    const L = lanes();
+    for (const c of cards) {
+      const stopX = gx - cw - 18;
+      const ahead = cards.filter(o => o.lane === c.lane && o.x > c.x && o.phase !== "done").sort((a, b) => a.x - b.x)[0];
+      const limit = ahead && ahead.phase !== "deliver" && ahead.phase !== "receipt" ? Math.min(ahead.x - cw - 14, stopX) : stopX;
+      if (c.phase === "approach") {
+        c.x = Math.min(c.x + speed * dt, limit);
+        if (c.x >= stopX - .5) { c.phase = "priced"; c.t = now; stats.priced++; }
+      } else if (c.phase === "priced" && now - c.t > 520) {
+        c.phase = "paying"; c.t = now; coins.push({ x: gx, y: H + 10, tx: c.x + cw / 2, ty: L[c.lane], t: now, card: c });
+      } else if (c.phase === "paying" && now - c.t > 620) {
+        c.phase = "pass"; c.t = now; c.paid = true; stats.paid++;
+      } else if (c.phase === "pass") {
+        c.x += speed * 1.25 * dt;
+        if (c.x > W * 0.78 - cw) { c.phase = "receipt"; c.t = now;
+          const p = pubs[c.pub], gain = Math.round(c.price * 0.9); p.earned += gain; p.flash = now; stats.earned += gain;
+          floats.push({ x: W * 0.88, y: H * (c.pub ? 0.64 : 0.36) - 30, text: `+$${(gain / 10000).toFixed(4)}`, t: now });
+          if (c.caught) stats.caught++;
+          c.stamp = c.caught ? "CAUGHT" : "FAIR USE"; }
+      } else if (c.phase === "receipt") {
+        if (c.caught && now - c.t > 700 && c.stamp === "CAUGHT") c.stamp = "FIXED ✓";
+        c.alpha = 1 - ease((now - c.t - 900) / 500);
+        if (now - c.t > 1400) c.phase = "done";
+      }
+    }
+    cards = cards.filter(c => c.phase !== "done");
+    floats = floats.filter(f => now - f.t < 1400);
+    coins = coins.filter(k => now - k.t < 620);
+  }
+
+  function draw(now) {
+    ctx.clearRect(0, 0, W, H);
+    // dotted paper grid
+    ctx.fillStyle = C.line;
+    for (let x = 12; x < W; x += 24) for (let y = 12; y < H; y += 24) ctx.fillRect(x, y, 1.2, 1.2);
+    const L = lanes(), gx = gateX(), cw = small() ? 120 : 190, ch = 36;
+
+    // lanes
+    ctx.strokeStyle = C.line2; ctx.setLineDash([4, 6]); ctx.lineWidth = 1;
+    for (const y of L) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W * 0.78, y); ctx.stroke(); }
+    ctx.setLineDash([]);
+
+    // gate post + sign
+    ctx.fillStyle = C.ink; rr(gx - 6, H * 0.16, 12, H * 0.66, 4); ctx.fill();
+    rr(gx - 52, H * 0.09, 104, 30, 7); ctx.fill();
+    ctx.fillStyle = C.ticket; ctx.font = `700 13px "IBM Plex Mono", monospace`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("402 · PAY", gx, H * 0.09 + 15);
+    // barriers per lane
+    L.forEach((y, i) => {
+      const c = cards.find(c => c.lane === i && (c.phase === "pass" || c.phase === "paying") && Math.abs(c.x + cw - gx) < cw + 30);
+      const open = c ? (c.phase === "pass" ? 1 : ease((now - c.t) / 600) * .2) : 0;
+      ctx.save(); ctx.translate(gx, y - ch / 2 - 6); ctx.rotate(-open * Math.PI * 0.45);
+      ctx.fillStyle = C.sheet; ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5;
+      rr(0, -4, 64, 8, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.red; for (let s = 8; s < 60; s += 16) ctx.fillRect(s, -4, 7, 8);
+      ctx.restore();
+    });
+
+    // wallet at bottom
+    const wy = H - 46;
+    ctx.fillStyle = C.sheet2; ctx.strokeStyle = C.line2; rr(gx - 92, wy - 14, 184, 30, 15); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = C.blue; ctx.font = `600 12px "IBM Plex Mono", monospace`; ctx.fillText("PayPal-funded wallets", gx, wy + 1);
+
+    // publishers
+    [0.36, 0.64].forEach((f, i) => {
+      const p = pubs[i], x = W * 0.81, y = H * f - 34, w = W * 0.17, h = 68;
+      const glow = Math.max(0, 1 - (now - p.flash) / 700);
+      ctx.fillStyle = C.sheet; ctx.strokeStyle = glow > 0 ? C.green : C.line2; ctx.lineWidth = 1.5 + glow * 2;
+      rr(x, y, w, h, 10); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.line; for (let k = 0; k < 3; k++) ctx.fillRect(x + 12, y + 30 + k * 9, w * (k === 2 ? .4 : .7), 4);
+      ctx.fillStyle = C.ink; ctx.textAlign = "left"; ctx.font = `700 ${small() ? 11 : 13}px Archivo, sans-serif`;
+      ctx.fillText(p.name, x + 12, y + 16);
+      ctx.fillStyle = C.green; ctx.textAlign = "right"; ctx.font = `600 ${small() ? 10 : 12}px "IBM Plex Mono", monospace`;
+      ctx.fillText(`$${(p.earned / 10000).toFixed(2)}`, x + w - 10, y + 16);
+    });
+
+    // coins
+    for (const k of coins) {
+      const e = ease((now - k.t) / 600);
+      const x = k.x + (k.tx - k.x) * e, y = k.y + (k.ty - k.y) * e - Math.sin(e * Math.PI) * 40;
+      ctx.fillStyle = C.ticket; ctx.strokeStyle = C.tink; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = C.tink; ctx.font = `700 9px "IBM Plex Mono", monospace`; ctx.textAlign = "center"; ctx.fillText("$", x, y + .5);
+    }
+
+    // cards
+    for (const c of cards) {
+      const y = L[c.lane] - ch / 2;
+      ctx.globalAlpha = c.alpha;
+      if (c.phase === "receipt") {
+        // card becomes a receipt slip
+        const rx = W * 0.78 - cw, ry = y - 6;
+        ctx.fillStyle = "#fffef9"; ctx.strokeStyle = C.line2; ctx.lineWidth = 1; rr(rx, ry, cw, ch + 12, 4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#55554f"; ctx.font = `500 10.5px "IBM Plex Mono", monospace`; ctx.textAlign = "left";
+        ctx.fillText(small() ? "receipt" : `receipt · ${c.agent}`, rx + 10, ry + 13);
+        ctx.fillText(small() ? "cited ✓" : "quoted 6/8 words · cited ✓", rx + 10, ry + 29);
+        const red = c.stamp === "CAUGHT";
+        ctx.save(); ctx.translate(rx + cw - 46, ry + 24); ctx.rotate(-0.18);
+        const s = 1 + Math.max(0, 1 - (now - c.t) / 220) * .8; ctx.scale(s, s);
+        ctx.strokeStyle = red ? C.red : C.green; ctx.fillStyle = red ? C.red : C.green; ctx.lineWidth = 2;
+        rr(-40, -11, 80, 22, 4); ctx.stroke();
+        ctx.font = `800 10.5px Archivo, sans-serif`; ctx.textAlign = "center"; ctx.fillText(c.stamp, 0, 1);
+        ctx.restore();
+      } else {
+        const has = c.paid;
+        ctx.fillStyle = has ? C.ticket : C.sheet; ctx.strokeStyle = has ? C.tink : C.line2; ctx.lineWidth = 1.2;
+        rr(c.x, y, cw, ch, 8); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = has ? C.tink : C.ink; ctx.font = `500 ${small() ? 10 : 11.5}px "IBM Plex Mono", monospace`; ctx.textAlign = "left";
+        const label = small() ? c.path.replace("/blog/", "/").slice(0, 15) : `GET ${c.path}`.slice(0, 27);
+        ctx.fillText(label, c.x + 10, y + ch / 2 + .5);
+        if (c.phase === "priced" || c.phase === "paying") {
+          // price tag pops above the card
+          const e = ease((now - c.t) / 260), tx = c.x + cw - 64, ty = y - 26 * e;
+          ctx.save(); ctx.translate(tx + 30, ty + 10); ctx.rotate(-0.06 * (1 - e)); ctx.translate(-tx - 30, -ty - 10);
+          ctx.fillStyle = C.ticket; ctx.strokeStyle = C.tink; rr(tx, ty - 6, 62, 22, 5); ctx.fill(); ctx.stroke();
+          ctx.fillStyle = C.tink; ctx.font = `700 11px "IBM Plex Mono", monospace`; ctx.textAlign = "center";
+          ctx.fillText(`$${(c.price / 10000).toFixed(3)}`, tx + 31, ty + 5.5);
+          ctx.restore();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+    // money floats
+    for (const f of floats) {
+      const e = (now - f.t) / 1400;
+      ctx.globalAlpha = 1 - e; ctx.fillStyle = C.green; ctx.font = `700 13px "IBM Plex Mono", monospace`; ctx.textAlign = "center";
+      ctx.fillText(f.text, f.x, f.y - e * 34); ctx.globalAlpha = 1;
+    }
+    $("#t-priced").textContent = stats.priced; $("#t-paid").textContent = stats.paid; $("#t-caught").textContent = stats.caught;
+    $("#t-earned").textContent = `$${(stats.earned / 10000).toFixed(2)}`;
+  }
+
+  function frame(now) { if (running) { step(now); draw(now); } requestAnimationFrame(frame); }
+  new IntersectionObserver(([e]) => { running = e.isIntersecting; last = performance.now(); }).observe(cv);
+  if (REDUCED) { // one representative still frame
+    let n = performance.now();
+    for (let i = 0; i < 260; i++) { n += 16; step(n); }
+    draw(n);
+  } else requestAnimationFrame(frame);
+})();
+
+/* ================= problem strike-through on view ================= */
+new IntersectionObserver(([e]) => { if (e.isIntersecting) $("#problem").classList.add("seen"); }, { threshold: .5 }).observe($("#problem"));
+
+/* ================= steps: sticky panel follows the active step ================= */
+(() => {
+  const steps = $$(".step"), panels = $$(".viz .panel");
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) {
+      const i = +e.target.dataset.step;
+      steps.forEach(s => s.classList.toggle("on", s === e.target));
+      panels.forEach(p => p.classList.toggle("on", +p.dataset.panel === i));
+      if (i === 1) $("#viz-ticket").innerHTML = FF.ticket({ title: "We benchmarked 6 ways to speed up a slow Python loop", publisher: "Code Dojo",
+        license_id: "lic_read_24h", expires_at: new Date(Date.now() + 86400000).toISOString(), price: "$0.0400", printing: true });
+      if (i === 2) $("#viz-receipt").innerHTML = FF.receipt({ id: "rcp_3f9c2a71", time: new Date().toISOString(), passed: true, caught: 2,
+        items: [{ title: "We benchmarked 6 ways to speed up a slow Python loop", how_used: "paraphrased", longest_copied_run: 6, max_quote_words: 8, cited: true }],
+        printing: true, stampLand: true });
+    }
+  }, { rootMargin: "-45% 0px -45% 0px" });
+  steps.forEach(s => io.observe(s));
+  $("#viz-ticket").innerHTML = FF.ticket({ title: "We benchmarked 6 ways to speed up a slow Python loop", publisher: "Code Dojo", license_id: "lic_read_24h",
+    expires_at: new Date(Date.now() + 86400000).toISOString(), price: "$0.0400" });
+  $("#viz-receipt").innerHTML = FF.receipt({ id: "rcp_3f9c2a71", time: new Date().toISOString(), passed: true, caught: 2,
+    items: [{ title: "We benchmarked 6 ways to speed up a slow Python loop", how_used: "paraphrased", longest_copied_run: 6, max_quote_words: 8, cited: true }] });
+})();
+
+/* ================= live 402 from the real gateway ================= */
+(async () => {
+  try {
+    const k = await FF.api("/v1/demo/knock");
+    $("#k-url").textContent = FF.gatewayBase() + "/blog/python-speed-benchmark";
+    $("#k-status").textContent = `HTTP/1.1 ${k.status} ${k.reason}   (${k.ms} ms)`;
+    const b = k.body;
+    const view = { error: b.error, title: b.title, price: b.price, license: b.license, preview: { excerpt: b.preview.excerpt.slice(0, 90) + " …" },
+                   purchase: { method: b.purchase.method, url: b.purchase.url } };
+    $("#k-body").textContent = JSON.stringify(view, null, 2);
+    $("#k-live").textContent = "● live from the gateway";
+  } catch { $("#k-live").textContent = "● example (gateway offline)"; }
+})();
+
+/* ================= publisher mock: typing + pages dropping in ================= */
+(() => {
+  const rows = [["We benchmarked 6 ways to speed up a slow Python loop", "$0.040"], ["Why your SQL query is slow: indexes explained", "$0.035"],
+                ["Find the slow part first: Python profiling", "$0.030"], ["How to undo almost any Git mistake", "$0.025"]];
+  const site = "codedojo.dev";
+  async function loop() {
+    const typed = $("#typed"), host = $("#mock-rows");
+    while (true) {
+      typed.textContent = ""; host.innerHTML = "";
+      for (const ch of site) { typed.textContent += ch; await FF.sleep(REDUCED ? 0 : 90); }
+      host.innerHTML = `<div class="row" style="border:0;color:var(--muted);font:12px var(--mono)"><span>reading sitemap.xml · 4 pages</span><span>AI price</span></div>`;
+      for (const [t, p] of rows) { await FF.sleep(REDUCED ? 0 : 380);
+        host.insertAdjacentHTML("beforeend", `<div class="row in"><span>${esc(t)}</span><span class="tag">${p}</span></div>`); }
+      if (REDUCED) return;
+      await FF.sleep(3600);
+    }
+  }
+  new IntersectionObserver(([e], o) => { if (e.isIntersecting) { o.disconnect(); loop(); } }).observe($("#mock-pub"));
+  $("#mock-tix").innerHTML = FF.ticket({ title: "Find the slow part first: Python profiling", publisher: "Code Dojo", license_id: "lic_read_24h",
+    expires_at: new Date(Date.now() + 86399000).toISOString(), price: "$0.0300" });
+})();
+</script>
+</body>
+</html>

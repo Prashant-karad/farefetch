@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fairfetch App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/ff.css">
+<style>
+/* Layout: product app. Top bar with role switch; Agent owner = sidebar (wallet, rules, passes) + chat;
+   Publisher = sub-tabs Overview / Set up / Content. */
+body { min-height: 100vh; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 41; background: var(--sheet); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 40; background: var(--sheet); border-bottom: 1px solid var(--line); }
+.top .in { display: flex; align-items: center; gap: 14px; padding-block: 10px; flex-wrap: wrap; }
+.role { display: inline-flex; background: var(--sheet-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-left: 8px; }
+.role a { text-decoration: none; padding: 7px 14px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.role a[aria-current="true"] { background: var(--ink); color: var(--paper); }
+.top .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.guide { border-bottom: 1px solid var(--line); background: var(--sheet-2); }
+.guide .in { display: flex; gap: 8px; align-items: center; padding-block: 8px; overflow-x: auto; }
+.guide .g { flex: none; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--sheet);
+  border-radius: 999px; padding: 5px 11px 5px 5px; font-size: 13px; cursor: pointer; color: var(--ink-2); }
+.guide .g i { font: 600 11px var(--mono); font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--sheet-2); }
+.guide .g.on { border-color: var(--blue); color: var(--ink); }
+.guide .g.on i { background: var(--blue); color: var(--blue-ink); }
+.guide .g.done i { background: var(--green); color: #fff; }
+.guide .cap { flex: none; font-size: 13px; color: var(--muted); padding-left: 6px; }
+.main { max-width: 1320px; margin: 0 auto; padding-block: 22px 60px; width: 100%; }
+.hl { animation: hl 1.6s ease-out 2; }
+@keyframes hl { 0% { box-shadow: 0 0 0 0 var(--blue); } 100% { box-shadow: 0 0 0 10px transparent; } }
+h2.h { margin: 0; font: 800 26px/1.1 var(--display); font-variation-settings: "wdth" 112; letter-spacing: -.02em; }
+.sub { color: var(--muted); font-size: 14px; }
+.card { padding: 18px; display: grid; gap: 12px; align-content: start; }
+.card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+input.field, select.field, textarea.field { width: 100%; background: var(--sheet); border: 1.5px solid var(--line-2); border-radius: 11px; padding: 11px 13px; outline: none; }
+input.field:focus, textarea.field:focus, select.field:focus { border-color: var(--blue); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--sheet-2); }
+.seg button { border: 0; background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--sheet); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.seg button[data-mode="sloppy"][aria-pressed="true"] { color: var(--red); }
+.bar { height: 7px; background: var(--sheet-2); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--blue); transition: width .8s cubic-bezier(.2,.9,.2,1); }
+.empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+
+/* ---------- agent owner ---------- */
+.agent { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; }
+.side { display: grid; gap: 14px; position: sticky; top: calc(130px + env(safe-area-inset-top, 0px)); }
+.money-big { font: 800 40px/1 var(--display); font-variation-settings: "wdth" 115; letter-spacing: -.02em; }
+.passes { display: grid; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
+.chat { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: calc(100vh - 170px); }
+.chat-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.thread { padding: 18px; display: grid; gap: 18px; align-content: start; }
+.composer { border-top: 1px solid var(--line); padding: 12px; display: flex; gap: 10px; position: sticky; bottom: env(safe-area-inset-bottom, 0px); background: var(--sheet); border-radius: 0 0 var(--r) var(--r); }
+.hello { display: grid; gap: 14px; padding: 30px 6px; }
+.hello h3 { margin: 0; font: 800 clamp(26px, 3vw, 36px)/1.05 var(--display); font-variation-settings: "wdth" 115; letter-spacing: -.025em; }
+.suggest { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.suggest button { text-align: left; background: var(--sheet-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: grid; gap: 4px; }
+.suggest button:hover { border-color: var(--blue); }
+.suggest b { font-weight: 600; font-size: 14.5px; }
+.suggest span { color: var(--muted); font-size: 12.5px; }
+.msg-me { justify-self: end; background: var(--ink); color: var(--paper); padding: 11px 15px; border-radius: 16px 16px 4px 16px; max-width: 75%; }
+.run { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--sheet); }
+.run-h { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; background: var(--sheet-2); border: 0; width: 100%; text-align: left; }
+.run-h .sum { flex: 1; min-width: 0; font-weight: 600; font-size: 14.5px; }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--blue); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ok-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--green); flex: none; display: grid; place-items: center; color: #fff; font-size: 11px; }
+.steps { padding: 6px 14px 14px; display: grid; gap: 2px; }
+.st { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px dashed var(--line); animation: rowin .35s ease-out both; }
+.st:first-child { border-top: 0; }
+@keyframes rowin { from { transform: translateY(5px); opacity: 0; } to { transform: none; opacity: 1; } }
+.st .ic { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; font: 700 11px var(--mono); background: var(--sheet-2); color: var(--muted); }
+.st .ic.blue { background: var(--blue-soft); color: var(--blue); } .st .ic.ticket { background: var(--ticket); color: var(--ticket-ink); }
+.st .ic.red { background: var(--red-soft); color: var(--red); } .st .ic.green { background: var(--green-soft); color: var(--green); }
+.st .t { font-weight: 600; font-size: 14px; }
+.st .d { color: var(--ink-2); font-size: 13.5px; display: grid; gap: 6px; margin-top: 2px; min-width: 0; }
+.tags402 { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag402 { display: inline-flex; gap: 6px; align-items: center; background: var(--sheet-2); border: 1px solid var(--line); border-radius: 7px; padding: 3px 8px; font-size: 12.5px; max-width: 100%; animation: drop .45s cubic-bezier(.3,1.5,.5,1) both; }
+.tag402 span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.tag402 b { font: 600 12px var(--mono); background: var(--ticket); color: var(--ticket-ink); border-radius: 4px; padding: 0 5px; flex: none; }
+@keyframes drop { from { transform: translateY(-10px) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.dec { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; padding: 4px 0; }
+.dec .v { font: 700 11.5px var(--mono); padding-top: 2px; }
+.dec .v.buy { color: var(--green); } .dec .v.skip { color: var(--muted); }
+.dec .why { color: var(--muted); font-size: 13px; }
+.draft { background: var(--sheet-2); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
+.answer { padding: 16px 18px; display: grid; gap: 12px; border-top: 1px solid var(--line); }
+.answer .text { font-size: 16px; line-height: 1.7; white-space: pre-wrap; max-width: 72ch; }
+.cite { display: inline-flex; align-items: center; gap: 4px; font: 600 11.5px/1.2 var(--body); background: var(--blue-soft); color: var(--blue); border-radius: 999px;
+  padding: 2px 8px; vertical-align: 2px; white-space: nowrap; cursor: default; }
+.answer .foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rcpt-btn { border: 0; cursor: pointer; background: var(--green-soft); color: var(--green); font-weight: 700; border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.rcpt-btn.red { background: var(--red-soft); color: var(--red); }
+
+/* modal */
+dialog { border: 0; padding: 0; background: transparent; max-width: min(460px, calc(100vw - 32px)); width: 100%; }
+dialog::backdrop { background: rgba(10, 12, 15, .45); backdrop-filter: blur(3px); }
+.modal { background: var(--sheet); border-radius: 18px; padding: 20px; display: grid; gap: 14px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.5); }
+.verify { font: 12px/1.6 var(--mono); background: var(--sheet-2); border-radius: 10px; padding: 10px 12px; overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
+
+/* ---------- publisher ---------- */
+.pub-h { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-bottom: 18px; }
+.tabs { display: inline-flex; gap: 4px; }
+.tabs a { text-decoration: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.tabs a[aria-current="true"] { background: var(--sheet); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.ov { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.ov .col { display: grid; gap: 16px; min-width: 0; }
+.earn { padding: 22px; display: grid; gap: 14px; background: var(--ink); color: var(--paper); border-color: transparent; }
+.earn .eyebrow { color: color-mix(in srgb, var(--paper) 65%, transparent); }
+.earn .big { font: 850 clamp(44px, 6vw, 72px)/1 var(--display); font-variation-settings: "wdth" 118; letter-spacing: -.03em; }
+.earn .row2 { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 14px; color: color-mix(in srgb, var(--paper) 75%, transparent); }
+.earn .row2 b { color: var(--paper); }
+.track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.track .s { display: grid; gap: 6px; font-size: 12px; color: color-mix(in srgb, var(--paper) 60%, transparent); }
+.track .s i { height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--paper) 18%, transparent); }
+.track .s.on { color: var(--paper); } .track .s.on i { background: var(--ticket); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.stat { padding: 14px; display: grid; gap: 4px; }
+.stat b { font: 800 26px/1 var(--display); font-variation-settings: "wdth" 112; }
+.stat span { font-size: 12.5px; color: var(--muted); }
+.feed { display: grid; }
+.vis { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); align-items: start; }
+.vis:first-child { border-top: 0; }
+.vis.new { animation: newrow 2s ease-out; }
+@keyframes newrow { from { background: color-mix(in srgb, var(--ticket) 45%, transparent); } to { background: transparent; } }
+.ava { width: 34px; height: 34px; border-radius: 10px; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; font: 700 12px var(--mono); }
+.vis .what { font-size: 14px; } .vis .what b { font-weight: 600; }
+.vis .why { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.vis .amt { font: 600 14px var(--mono); color: var(--green); white-space: nowrap; }
+.rc-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.wiz { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 18px; align-items: start; }
+.rail { display: grid; gap: 4px; position: sticky; top: calc(140px + env(safe-area-inset-top, 0px)); }
+.rail .r { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; padding: 10px; border-radius: 10px; color: var(--muted); }
+.rail .r i { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--mono); font-style: normal; border: 1.5px solid var(--line-2); }
+.rail .r b { font-weight: 600; font-size: 14px; } .rail .r small { display: block; font-size: 12.5px; }
+.rail .r.on { background: var(--sheet); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.rail .r.on i { border-color: var(--blue); color: var(--blue); }
+.rail .r.done i { background: var(--green); border-color: var(--green); color: #fff; }
+.urlbar { display: flex; gap: 10px; flex-wrap: wrap; }
+.urlbar input { flex: 1 1 260px; font: 500 17px var(--mono); padding: 14px 16px; }
+.console { background: #0f1115; color: #c9ced8; border-radius: 12px; padding: 12px 14px; font: 12.5px/1.7 var(--mono); min-height: 60px; }
+.console .ok { color: #3fcf8e; } .console .k { color: #ffd84a; }
+.pages { display: grid; }
+.pg { display: grid; grid-template-columns: minmax(0, 1fr) 130px 150px; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); animation: rowin .4s ease-out both; }
+.pg .tt { font-weight: 600; font-size: 14.5px; overflow-wrap: anywhere; }
+.pg .why { color: var(--muted); font-size: 13px; }
+.price-in { display: flex; align-items: center; gap: 4px; background: var(--ticket); color: var(--ticket-ink); border-radius: 8px; padding: 6px 8px; animation: drop .5s cubic-bezier(.3,1.5,.5,1) both; }
+.price-in input { width: 100%; border: 0; background: transparent; font: 600 14px var(--mono); color: var(--ticket-ink); outline: none; }
+.code { background: #0f1115; color: #d7dbe2; border-radius: 12px; padding: 14px; font: 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.live-banner { display: flex; gap: 14px; align-items: center; padding: 18px; border-radius: 14px; background: var(--green-soft); color: var(--green); }
+.live-banner b { font: 800 22px var(--display); font-variation-settings: "wdth" 112; }
+table.content { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.content th { text-align: left; font: 600 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; }
+table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+.tbl { overflow-x: auto; }
+
+@media (max-width: 1020px) {
+  .agent, .ov, .wiz { grid-template-columns: minmax(0, 1fr); }
+  .side, .rail { position: static; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chat { min-height: 70vh; }
+}
+@media (max-width: 640px) {
+  .suggest { grid-template-columns: minmax(0, 1fr); }
+  .pg { grid-template-columns: minmax(0, 1fr) 1fr; }
+  .pg .tt-wrap { grid-column: 1 / -1; }
+  .top .right .btn-ghost { display: none; }
+  .msg-me { max-width: 92%; }
+}
+</style>
+</head>
+<body>
+<div class="top gutter">
+  <div class="in main" style="padding-block:10px">
+    <a class="wordmark" href="/"><span class="glyph" aria-hidden="true"></span>fairfetch</a>
+    <nav class="role" aria-label="Who are you">
+      <a href="#agent" data-role="agent">Agent owner</a>
+      <a href="#publisher" data-role="publisher">Publisher</a>
+    </nav>
+    <div class="right">
+      <a class="btn btn-ghost btn-sm" href="/live" target="_blank" rel="noopener">Under the hood ↗</a>
+      <button class="btn btn-ghost btn-sm" id="guide-toggle" aria-expanded="true">Demo guide</button>
+    </div>
+  </div>
+</div>
+<div class="guide gutter" id="guide">
+  <div class="in main" style="padding-block:8px" id="guide-steps"></div>
+</div>
+
+<main class="main gutter">
+  <!-- ================= AGENT OWNER ================= -->
+  <section id="v-agent" hidden>
+    <div class="agent">
+      <aside class="side">
+        <div class="sheet card" id="wallet-card">
+          <div class="card-h"><span class="eyebrow">Wallet · <span id="agent-name">study-agent</span></span><span class="chip blue">PayPal</span></div>
+          <div class="money-big num" id="wallet-big">$0.0000</div>
+          <div style="display:grid;gap:6px">
+            <div class="card-h"><span class="sub">Spent today</span><span class="sub num" id="spent-line">$0.0000 of $1.0000</span></div>
+            <div class="bar"><i id="spent-bar" style="width:0%"></i></div>
+          </div>
+          <div id="topup-area" style="display:grid;gap:8px">
+            <button class="btn btn-primary" id="topup-btn">Add $5.00 with PayPal</button>
+          </div>
+          <div id="topups" style="display:grid;gap:4px"></div>
+        </div>
+        <div class="sheet card" id="rules-card">
+          <div class="card-h"><span class="eyebrow">Spending rules</span><span class="sub">enforced by Fairfetch</span></div>
+          <div id="rule-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          <form id="rule-form" style="display:grid;gap:8px">
+            <textarea class="field" id="rule-text" rows="2" aria-label="Spending rule in plain English" placeholder="e.g. Never more than 5 cents per article and $1 a day">Never more than 5 cents per article and $1 a day</textarea>
+            <button class="btn btn-ghost btn-sm" style="justify-self:start" id="rule-save">Save rule</button>
+            <div class="sub" id="rule-msg"></div>
+          </form>
+        </div>
+        <div class="sheet card">
+          <div class="card-h"><span class="eyebrow">Access passes</span><span class="sub" id="pass-count"></span></div>
+          <div class="passes" id="passes"></div>
+        </div>
+      </aside>
+
+      <section class="sheet chat">
+        <div class="chat-h">
+          <div><h2 class="h" style="font-size:20px">Ask your agent</h2><div class="sub">It finds paid sources, pays within your rules, and returns a license-checked answer.</div></div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div class="seg" role="group" aria-label="Agent behaviour">
+              <button data-mode="careful" aria-pressed="true">Careful</button>
+              <button data-mode="sloppy" aria-pressed="false" title="Deliberately copies text to show the license guard">Copy-paste (demo)</button>
+            </div>
+            <label class="sub" style="display:inline-flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="fresh" checked> fresh passes</label>
+          </div>
+        </div>
+        <div class="thread" id="thread">
+          <div class="hello" id="hello">
+            <h3>What should your agent find out?</h3>
+            <div class="suggest">
+              <button data-q="How do I make my slow Python code faster, and which approach gives the biggest speed-up?"><b>Make slow Python code faster</b><span>Code Dojo benchmarks + guides</span></button>
+              <button data-q="Why is my SQL query slow and how do indexes help?"><b>Why is my SQL query slow?</b><span>Original timings from Code Dojo</span></button>
+              <button data-q="How do I learn Python fast?"><b>Learn Python fast</b><span>Two near-identical guides: watch it skip one</span></button>
+              <button data-q="What are the developer job trends for Python and JavaScript this week?"><b>Developer job trends</b><span>A paid data API, 1-hour pass</span></button>
+            </div>
+          </div>
+        </div>
+        <form class="composer" id="composer">
+          <input class="field" id="q" aria-label="Your question" placeholder="Ask anything your agent should research…" autocomplete="off">
+          <button class="btn btn-primary" id="send">Ask</button>
+        </form>
+      </section>
+    </div>
+  </section>
+
+  <!-- ================= PUBLISHER ================= -->
+  <section id="v-publisher" hidden>
+    <div class="pub-h">
+      <div style="display:grid;gap:2px"><span class="eyebrow">Publisher</span>
+        <select class="field" id="pub-pick" aria-label="Publisher" style="font:800 22px var(--display);font-variation-settings:'wdth' 112;padding:4px 30px 4px 8px;border-color:transparent;background-color:transparent;width:auto"></select></div>
+      <nav class="tabs" aria-label="Publisher sections">
+        <a href="#publisher" data-tab="overview">Overview</a>
+        <a href="#publisher-setup" data-tab="setup">Set up</a>
+        <a href="#publisher-content" data-tab="content">Content</a>
+      </nav>
+      <span class="chip" style="margin-left:auto;max-width:100%;overflow:hidden;text-overflow:ellipsis" id="pub-email"></span>
+    </div>
+
+    <!-- overview -->
+    <div id="t-overview" hidden>
+      <div class="ov">
+        <div class="col">
+          <div class="sheet earn" id="earn-card">
+            <span class="eyebrow">Owed to you</span>
+            <div class="big num" id="owed">$0.0000</div>
+            <div class="row2"><span>earned all time <b class="num" id="earned">$0.0000</b></span><span>paid to PayPal <b class="num" id="paid">$0.0000</b></span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+              <button class="btn btn-ticket" id="payout-btn">Pay me via PayPal</button>
+              <span style="font-size:13px;opacity:.75" id="payout-note">Whole cents are sent in one PayPal Payouts batch.</span>
+            </div>
+            <div class="track" id="track">
+              <div class="s" data-s="0"><i></i>Earned</div><div class="s" data-s="1"><i></i>Batched</div>
+              <div class="s" data-s="2"><i></i>Sent to PayPal</div><div class="s" data-s="3"><i></i>In your PayPal</div>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="sheet stat"><b class="num" id="s-asked">0</b><span>AI bots asked to pay</span></div>
+            <div class="sheet stat"><b class="num" id="s-paid">0</b><span>paid reads</span></div>
+            <div class="sheet stat"><b class="num" id="s-blocked">0</b><span>blocked</span></div>
+            <div class="sheet stat"><b class="num" id="s-rc">0</b><span>usage receipts</span></div>
+          </div>
+          <div class="sheet card">
+            <div class="card-h"><span class="eyebrow">How your work was used</span><span class="sub">signed receipts</span></div>
+            <div class="rc-row" id="receipts"></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="sheet card">
+            <div class="card-h"><span class="eyebrow">AI visitors who paid</span><span class="chip green" id="live-chip">● live</span></div>
+            <div class="feed" id="feed"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- setup wizard -->
+    <div id="t-setup" hidden>
+      <div class="wiz">
+        <nav class="rail" id="rail">
+          <div class="r on" data-r="0"><i>1</i><div><b>Your site</b><small>Paste a link, we scan it</small></div></div>
+          <div class="r" data-r="1"><i>2</i><div><b>Prices &amp; licenses</b><small>AI suggests, you decide</small></div></div>
+          <div class="r" data-r="2"><i>3</i><div><b>Connect</b><small>Put the gateway in front</small></div></div>
+          <div class="r" data-r="3"><i>4</i><div><b>Test with a bot</b><small>See the 402 yourself</small></div></div>
+        </nav>
+        <div style="display:grid;gap:16px;min-width:0">
+          <div class="sheet card" id="w-site">
+            <h2 class="h">Which website should AI agents pay to read?</h2>
+            <p class="sub" style="margin:0">We read your sitemap (or feed, or home page), open each page, and an AI suggests a fair price based on how original it is.</p>
+            <form class="urlbar" id="scan-form">
+              <input class="field" id="site-url" aria-label="Website address" placeholder="https://yourblog.com">
+              <button class="btn btn-primary" id="scan-btn">Scan my site</button>
+            </form>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="sub">No site handy?</span>
+              <button class="chip" id="use-demo" style="cursor:pointer">Use the demo site (Code Dojo, running on :8002)</button></div>
+            <div class="console" id="scan-log" hidden></div>
+          </div>
+          <div class="sheet card" id="w-prices" hidden>
+            <div class="card-h"><h2 class="h">Set prices and licenses</h2><span class="sub" id="priced-by"></span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center"><span class="sub">AI agents may</span>
+              <div class="seg" role="group" aria-label="AI access policy" id="policy">
+                <button type="button" data-p="charge" aria-pressed="true">Pay to read</button>
+                <button type="button" data-p="free" aria-pressed="false">Read free</button>
+                <button type="button" data-p="block" aria-pressed="false">Not read at all</button>
+              </div></div>
+            <div class="pages" id="pages"></div>
+            <button class="btn btn-primary" id="to-connect" style="justify-self:start">Continue</button>
+          </div>
+          <div class="sheet card" id="w-connect" hidden>
+            <h2 class="h">Put Fairfetch in front of your site</h2>
+            <div class="seg" role="group" aria-label="Connection method" id="conn">
+              <button type="button" data-c="link" aria-pressed="true">Fairfetch link</button>
+              <button type="button" data-c="dns" aria-pressed="false">Your domain (DNS)</button>
+              <button type="button" data-c="code" aria-pressed="false">Code</button>
+            </div>
+            <div id="conn-body"></div>
+            <button class="btn btn-primary" id="go-live" style="justify-self:start">Go live</button>
+            <div class="sub" id="go-msg"></div>
+          </div>
+          <div class="sheet card" id="w-test" hidden>
+            <div id="live-banner"></div>
+            <h2 class="h">Send a test AI bot</h2>
+            <p class="sub" style="margin:0">A real request goes through your gateway without paying. This is exactly what every AI agent will see.</p>
+            <button class="btn btn-ink" id="test-btn" style="justify-self:start">Send a test bot</button>
+            <div id="test-out"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- content -->
+    <div id="t-content" hidden>
+      <div class="sheet card">
+        <div class="card-h"><span class="eyebrow">Your content behind the gateway</span><span class="sub">prices update the gateway instantly</span></div>
+        <div class="tbl"><table class="content"><thead><tr><th>Page</th><th>Price</th><th>License</th><th>Asked to pay</th><th>Paid reads</th></tr></thead><tbody id="content-rows"></tbody></table></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="rc-dialog"><div class="modal">
+  <div class="card-h"><b style="font:800 20px var(--display)">Usage receipt</b><button class="btn btn-ghost btn-sm" id="rc-close">Close</button></div>
+  <div id="rc-body"></div>
+  <button class="btn btn-ink btn-sm" id="rc-verify" style="justify-self:start">Verify the signature with the public key</button>
+  <div class="verify" id="rc-verify-out" hidden></div>
+</div></dialog>
+
+<script src="/static/ff.js"></script>
+<script>
+"use strict";
+const { $, $$, esc, usd, api, sleep, odometer, toast, ticket, receipt, licShort, ago, REDUCED } = FF;
+
+/* ================= routing ================= */
+const ROUTES = { agent: ["agent"], publisher: ["publisher", "overview"], "publisher-setup": ["publisher", "setup"], "publisher-content": ["publisher", "content"] };
+let role = "agent", tab = "overview";
+function route() {
+  const [r, t] = ROUTES[location.hash.slice(1)] || ROUTES.agent;
+  role = r; if (t) tab = t;
+  $("#v-agent").hidden = role !== "agent"; $("#v-publisher").hidden = role !== "publisher";
+  $$(".role a").forEach(a => a.setAttribute("aria-current", a.dataset.role === role));
+  $$(".tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab === tab));
+  ["overview", "setup", "content"].forEach(k => $("#t-" + k).hidden = k !== tab);
+  if (role === "agent") loadOwner(); else loadPublisher();
+  renderGuide();
+}
+addEventListener("hashchange", route);
+
+/* ================= catalog: who publishes what ================= */
+let CATALOG = {};
+async function loadCatalog() {
+  try { (await api("/v1/catalog?limit=50")).forEach(r => CATALOG[r.resource_id] = r); } catch {}
+}
+
+/* ================= AGENT OWNER ================= */
+let owner = null;
+async function loadOwner() {
+  try { owner = await api("/v1/demo/owner"); } catch (e) { return; }
+  $("#agent-name").textContent = owner.agent.name;
+  odometer($("#wallet-big"), owner.wallet.display);
+  const r = owner.rules;
+  if (r) {
+    $("#spent-line").textContent = `${owner.spent_today_display} of ${r.max_per_day_display}`;
+    $("#spent-bar").style.width = Math.min(100, 100 * owner.spent_today / r.max_per_day) + "%";
+    $("#rule-chips").innerHTML = `<span class="chip blue">max ${r.max_per_item_display} per item</span><span class="chip blue">max ${r.max_per_day_display} a day</span>` +
+      (r.approval_display ? `<span class="chip blue">ask me above ${r.approval_display}</span>` : "");
+  }
+  $("#topups").innerHTML = owner.topups.slice(0, 2).map(t => `<div class="card-h" style="font-size:12.5px"><span class="mono">${esc(t.order?.startsWith("DEV") ? "dev credit (not PayPal)" : "PayPal " + (t.order || ""))}</span>
+    <span class="chip ${t.status === "completed" ? "green" : ""}" style="font-size:11px">${esc(t.amount)} ${esc(t.status)}</span></div>`).join("");
+  const known = new Set($$("#passes .ticket").map(t => t.dataset.g));
+  $("#passes").innerHTML = owner.passes.length ? owner.passes.map(p => ticket({ ...p, printing: !known.has(p.grant_id) && known.size > 0 }).replace('class="ticket', `data-g="${p.grant_id}" class="ticket`)).join("")
+    : `<div class="empty">No passes yet. When your agent pays for a page, its ticket appears here and counts down to expiry.</div>`;
+  $("#pass-count").textContent = owner.passes.length ? `${owner.passes.length} active` : "";
+}
+
+/* PayPal top-up */
+async function startTopup() {
+  const area = $("#topup-area"), btn = $("#topup-btn");
+  btn.disabled = true; btn.textContent = "Creating PayPal order…";
+  try {
+    const r = await api("/v1/demo/topup", { method: "POST" });
+    area.innerHTML = `<a class="btn btn-primary" href="${esc(r.approve_url)}" target="_blank" rel="noopener">1 · Approve $5.00 in PayPal ↗</a>
+      <button class="btn btn-ghost" id="capture-btn">2 · I approved it, add the money</button><span class="sub" id="cap-msg">PayPal sandbox opens in a new tab.</span>`;
+    $("#capture-btn").onclick = async () => {
+      $("#cap-msg").textContent = "Capturing the payment at PayPal…";
+      try {
+        const c = await api(`/v1/demo/topup/${encodeURIComponent(r.paypal_order_id)}/capture`, { method: "POST" });
+        toast(`${c.amount} added to the wallet`, "PayPal payment captured and verified", "+", "var(--blue)");
+        area.innerHTML = `<button class="btn btn-primary" id="topup-btn">Add $5.00 with PayPal</button>`;
+        $("#topup-btn").onclick = startTopup;
+        loadOwner();
+      } catch (e) { $("#cap-msg").textContent = `Not captured yet: ${e.message}. Approve in the PayPal tab first.`; }
+    };
+  } catch (e) { btn.disabled = false; btn.textContent = "Add $5.00 with PayPal"; toast("PayPal order failed", e.message, "!", "var(--red)"); }
+}
+$("#topup-btn").onclick = startTopup;
+
+/* plain-English rules */
+$("#rule-form").onsubmit = async e => {
+  e.preventDefault();
+  const btn = $("#rule-save"); btn.disabled = true; $("#rule-msg").textContent = "Reading your rule…";
+  try {
+    const r = await api("/v1/demo/rules", { method: "PUT", body: JSON.stringify({ rule: $("#rule-text").value }) });
+    $("#rule-msg").textContent = `Understood by ${r.interpreted_by}. ${r.explanation || ""}`;
+    await loadOwner(); $("#rule-chips").classList.add("hl"); setTimeout(() => $("#rule-chips").classList.remove("hl"), 3000);
+  } catch (err) { $("#rule-msg").textContent = err.message; }
+  btn.disabled = false;
+};
+
+/* modes */
+$$("[data-mode]").forEach(b => b.onclick = () => $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x === b)));
+$$(".suggest button").forEach(b => b.onclick = () => { $("#q").value = b.dataset.q; ask(); });
+$("#composer").onsubmit = e => { e.preventDefault(); ask(); };
+
+/* ---------- a run ---------- */
+let running = false;
+function markCopied(text, excerpts) {
+  const toks = [...text.matchAll(/[A-Za-z0-9]+/g)].map(m => ({ w: m[0].toLowerCase(), s: m.index, e: m.index + m[0].length }));
+  const spans = [];
+  for (const ex of excerpts) { const ws = ex.split(" ").filter(Boolean); if (!ws.length) continue;
+    for (let i = 0; i + ws.length <= toks.length; i++) if (ws.every((w, j) => toks[i + j].w === w)) { spans.push([toks[i].s, toks[i + ws.length - 1].e]); break; } }
+  spans.sort((a, b) => a[0] - b[0]);
+  let out = "", pos = 0;
+  for (const [s, e] of spans) { if (s < pos) continue; out += esc(text.slice(pos, s)) + `<span class="redpen">${esc(text.slice(s, e))}</span>`; pos = e; }
+  return out + esc(text.slice(pos));
+}
+function cites(text, offers) {
+  return esc(text).replace(/[\[【]\s*(res_[a-z0-9_]+)\s*[\]】]/g, (m, id) => {
+    const c = CATALOG[id], o = offers[id];
+    return `<span class="cite" title="${esc((o?.title || c?.title || id) + (c ? " · " + c.publisher : ""))}">${esc(c?.publisher || "source")}</span>`;
+  });
+}
+
+async function ask() {
+  const q = $("#q").value.trim();
+  if (!q || running) return;
+  running = true; $("#send").disabled = true; $("#hello")?.remove(); $("#q").value = "";
+  const sloppy = $('[data-mode="sloppy"]').getAttribute("aria-pressed") === "true";
+  const thread = $("#thread");
+  thread.insertAdjacentHTML("beforeend", `<div class="msg-me">${esc(q)}</div>`);
+  const run = document.createElement("div"); run.className = "run";
+  run.innerHTML = `<button class="run-h" type="button"><span class="spin"></span><span class="sum">Starting your agent…</span><span class="sub">steps ▾</span></button><div class="steps"></div>`;
+  thread.appendChild(run);
+  const steps = $(".steps", run), sum = $(".sum", run);
+  $(".run-h", run).onclick = () => steps.hidden = !steps.hidden;
+  const scroll = () => run.scrollIntoView({ block: "end", behavior: REDUCED ? "auto" : "smooth" });
+  const addStep = (ic, tone, t, d = "") => { steps.insertAdjacentHTML("beforeend", `<div class="st"><span class="ic ${tone}">${ic}</span><div><div class="t">${t}</div><div class="d">${d}</div></div></div>`); scroll(); return steps.lastElementChild; };
+
+  if ($("#fresh").checked) { try { await api("/v1/demo/reset-passes", { method: "POST" }); } catch {} await loadOwner(); }
+
+  const offers = {}; let priceStep = null, payStep = null, decisions = {}, paidTotal = 0, paidPubs = new Set(), draft = "", guardRes = null, draftStep = null;
+  const queue = []; let pumping = false;
+  const es = new EventSource(`/v1/demo/run?q=${encodeURIComponent(q)}&sloppy=${sloppy}`);
+  let ended = false;
+  const end = () => { if (ended) return; ended = true; es.close(); queue.push({ event: "closed" }); pump(); };
+  es.onmessage = m => { let ev; try { ev = JSON.parse(m.data); } catch { return; } if (ev.event === "closed") return end(); queue.push(ev); pump(); };
+  es.onerror = end;
+
+  async function pump() {
+    if (pumping) return; pumping = true;
+    while (queue.length) { await handle(queue.shift()); await sleep(REDUCED ? 0 : 260); }
+    pumping = false;
+  }
+
+  async function handle(ev) {
+    switch (ev.event) {
+      case "start":
+        sum.textContent = "Searching for sources…";
+        addStep("?", "blue", "Understood the question", `Budget: up to ${usd(ev.budget.max_per_item)} per page, ${usd(ev.budget.max_per_day)} a day · wallet ${esc(ev.wallet.display)} · thinking with ${esc(ev.reasoning)}`);
+        break;
+      case "discover": {
+        const pubs = new Set(ev.results.map(r => CATALOG[Object.keys(CATALOG).find(k => CATALOG[k].path === r.path)]?.publisher).filter(Boolean));
+        addStep("⌕", "blue", `Found ${ev.results.length} possible sources${pubs.size ? ` from ${pubs.size} publisher${pubs.size > 1 ? "s" : ""}` : ""}`, "Titles only. The pages themselves sit behind each publisher's Fairfetch gateway.");
+        break;
+      }
+      case "offer": {
+        const o = ev.body; offers[o.resource_id] = { ...o, path: ev.path };
+        if (!priceStep) { priceStep = addStep("402", "ticket", "Asked each page for access: every one answered with a price", `<div class="tags402"></div>`); sum.textContent = "Checking prices…"; }
+        $(".tags402", priceStep).insertAdjacentHTML("beforeend", `<span class="tag402" title="${esc(o.preview.excerpt)}"><span>${esc(o.title)}</span><b>${esc(o.price.display)}</b></span>`);
+        break;
+      }
+      case "decisions": {
+        sum.textContent = "Deciding what is worth paying for…";
+        ev.decisions.forEach(d => decisions[d.resource_id] = d);
+        const buy = ev.decisions.filter(d => d.buy).length;
+        addStep("AI", "blue", `Decided to buy ${buy} and skip ${ev.decisions.length - buy}`,
+          ev.decisions.map(d => `<div class="dec"><span class="v ${d.buy ? "buy" : "skip"}">${d.buy ? "BUY" : "SKIP"}</span><div><b style="font-weight:600">${esc(offers[d.resource_id]?.title || d.resource_id)}</b> <span class="mono" style="font-size:12px">${esc(offers[d.resource_id]?.price.display || "")}</span><div class="why">${esc(d.reason)}</div></div></div>`).join(""));
+        break;
+      }
+      case "purchase": {
+        const o = offers[ev.resource_id] || { title: ev.resource_id }, b = ev.body, pub = CATALOG[ev.resource_id]?.publisher || "the publisher";
+        if (!payStep) { payStep = addStep("$", "ticket", "Paid from your wallet", ""); sum.textContent = "Paying…"; }
+        const d = $(".d", payStep);
+        if (ev.http.status >= 400) {
+          const msg = b?.detail?.message || "refused";
+          d.insertAdjacentHTML("beforeend", `<div class="chip red" style="white-space:normal">Blocked by your rules: ${esc(o.title)}. ${esc(msg)}</div>`);
+          toast("Purchase blocked by your rules", msg, "!", "var(--red)");
+        } else {
+          const claims = (() => { try { return JSON.parse(atob(b.pass_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch { return {}; } })();
+          if (!b.already_owned) { paidTotal += b.price; paidPubs.add(pub); }
+          d.insertAdjacentHTML("beforeend", ticket({ title: o.title, publisher: pub, license_id: claims.lic || o.license?.id, expires_at: b.expires_at,
+            price: b.already_owned ? "already owned · no charge" : usd(b.price), printing: true }));
+          if (!b.already_owned) toast(`${pub} earned ${usd(Math.round(b.price * 0.9))}`, `${o.title}`, "$", "var(--green)");
+          loadOwner();
+        }
+        scroll();
+        break;
+      }
+      case "read": {
+        const id = Object.keys(offers).find(k => offers[k].path === ev.path);
+        addStep("✓", "green", `Read “${esc(offers[id]?.title || ev.path)}” through the gateway`,
+          `<span class="sub">Pass signature checked · ${ev.words} words · ${ev.http.ms} ms · license <span class="mono">${esc(ev.http.response_headers["x-fairfetch-license"] || "")}</span></span>`);
+        sum.textContent = "Reading…";
+        break;
+      }
+      case "draft":
+        draft = ev.text; sum.textContent = "Writing the answer…";
+        draftStep = addStep("✎", ev.sloppy ? "red" : "blue", ev.sloppy ? "Wrote a draft by pasting sentences from the pages" : "Wrote a draft answer", "");
+        break;
+      case "guard": {
+        guardRes = ev.result; const v = guardRes.violations_found || [];
+        sum.textContent = "Checking the license…";
+        if (v.length) {
+          $(".d", draftStep).innerHTML = `<div class="draft">${markCopied(draft, v.filter(x => x.excerpt).map(x => x.excerpt))}</div>`;
+          addStep("!", "red", `License check caught ${v.length} problem${v.length > 1 ? "s" : ""}`,
+            v.map(x => `<div><span class="chip red">${esc(x.type.replace(/_/g, " "))}</span> ${esc(x.message)}</div>`).join("") +
+            `<div class="sub">Fixed automatically by ${guardRes.fixed_by === "llm_rewrite" ? "an AI rewrite" : "trimming the copied text"}, then checked again.</div>`);
+          toast("Copying caught and fixed", `${v.length} license problems in the draft`, "!", "var(--red)");
+        } else {
+          addStep("✓", "green", "License check passed", "No copied passages, every source credited, all passes valid.");
+        }
+        break;
+      }
+      case "done": {
+        if (!ev.final_answer) { addStep("·", "", "No sources were bought, so there is nothing to answer from."); break; }
+        const r = guardRes || {};
+        run.querySelector(".spin")?.replaceWith(Object.assign(document.createElement("span"), { className: "ok-dot", textContent: "✓" }));
+        sum.textContent = `Paid ${usd(paidTotal)} to ${paidPubs.size || 0} publisher${paidPubs.size === 1 ? "" : "s"} · ${Object.values(decisions).filter(d => d.buy).length} sources · ${r.passed ? "fair use ✓" : "check failed"}`;
+        steps.hidden = true;
+        run.insertAdjacentHTML("beforeend", `<div class="answer"><div class="text">${cites(ev.final_answer, offers)}</div>
+          <div class="foot"><button class="rcpt-btn ${r.passed ? "" : "red"}" type="button">Receipt · ${r.passed ? ((r.violations_found || []).length ? "fixed · fair use" : "fair use") : "violation"}</button>
+          <span class="sub mono">${esc(ev.receipt_id)}</span></div></div>`);
+        $(".rcpt-btn", run).onclick = () => openReceipt(r, offers);
+        scroll();
+        break;
+      }
+      case "error":
+        addStep("!", "red", "Something went wrong", esc(ev.message));
+        break;
+      case "closed":
+        running = false; $("#send").disabled = false;
+        if (!guardRes) { run.querySelector(".spin")?.remove(); if (sum.textContent.endsWith("…")) sum.textContent = "Stopped"; }
+        loadOwner();
+        break;
+    }
+  }
+}
+
+/* receipt modal */
+let currentReceipt = null;
+function openReceipt(r, offers) {
+  currentReceipt = r;
+  $("#rc-body").innerHTML = receipt({ id: r.receipt_id, time: new Date().toISOString(), passed: r.passed, caught: (r.violations_found || []).length,
+    items: (r.items || []).filter(i => i.used).map(i => ({ ...i, title: offers[i.resource_id]?.title || CATALOG[i.resource_id]?.title || i.resource_id })),
+    printing: true, stampLand: true });
+  $("#rc-verify-out").hidden = true;
+  $("#rc-dialog").showModal();
+}
+$("#rc-close").onclick = () => $("#rc-dialog").close();
+$("#rc-verify").onclick = async () => {
+  const out = $("#rc-verify-out"); out.hidden = false; out.textContent = "Verifying…";
+  try {
+    const v = await api("/v1/demo/verify", { method: "POST", body: JSON.stringify({ token: currentReceipt.signature }) });
+    out.innerHTML = `<b style="color:${v.valid ? "var(--green)" : "var(--red)"}">${v.valid ? "✓ Valid ES256 signature from " + esc(v.claims.iss) : "✗ " + esc(v.error)}</b>\n` +
+      esc(JSON.stringify({ receipt: v.claims.rcp, agent: v.claims.sub, passed: v.claims.passed, answer_sha256: v.claims.answer_sha256.slice(0, 16) + "…", items: v.claims.items }, null, 1));
+    out.style.whiteSpace = "pre-wrap";
+  } catch (e) { out.textContent = e.message; }
+};
+
+/* ================= PUBLISHER ================= */
+let pubId = "pub_code_dojo", pubData = null, seenVisits = new Set();
+async function loadPublishers() {
+  try {
+    const list = await api("/v1/demo/publishers");
+    $("#pub-pick").innerHTML = list.map(p => `<option value="${esc(p.id)}" ${p.id === pubId ? "selected" : ""}>${esc(p.name)}</option>`).join("");
+  } catch {}
+}
+$("#pub-pick").onchange = e => { pubId = e.target.value; seenVisits = new Set(); scanned = null; loadPublisher(); };
+
+async function loadPublisher() {
+  let d; try { d = await api(`/v1/demo/publisher/${pubId}`); } catch { return; }
+  const first = !pubData || pubData.id !== d.id; pubData = d;
+  $("#pub-email").textContent = `PayPal payouts → ${d.paypal_email}`;
+  odometer($("#owed"), d.balance_display);
+  $("#earned").textContent = d.earned_display; $("#paid").textContent = d.paid_display;
+  $("#s-asked").textContent = d.stats.asked_to_pay; $("#s-paid").textContent = d.stats.paid_reads;
+  $("#s-blocked").textContent = d.stats.blocked; $("#s-rc").textContent = d.stats.receipts;
+  const last = d.payouts[0];
+  setTrack(d.balance > 0 && !last ? 1 : last ? (last.status === "success" || last.status === "completed" ? 4 : 3) : d.earned > 0 ? 1 : 0);
+  if (last) $("#payout-note").textContent = `Last payout ${last.amount} · PayPal batch ${last.batch || "-"} · ${last.status}`;
+  $("#feed").innerHTML = d.visitors.length ? d.visitors.map(v => {
+    const key = v.time + v.title, isNew = !first && !seenVisits.has(key); seenVisits.add(key);
+    return `<div class="vis ${isNew ? "new" : ""}"><span class="ava">${esc(v.agent.slice(0, 2).toUpperCase())}</span>
+      <div><div class="what"><b>${esc(v.agent)}</b> paid to read <b>${esc(v.title)}</b></div><div class="why">Why: ${esc(v.reason || "-")}</div><div class="sub" style="font-size:12px">${ago(v.time)}</div></div>
+      <span class="amt">+${esc(usd(Math.round(parseFloat(v.price.slice(1)) * 10000 * 0.9)))}</span></div>`;
+  }).join("") : `<div class="empty">No AI agent has paid yet. Switch to <a href="#agent">Agent owner</a> and ask a question, then watch this feed.</div>`;
+  if (first) d.visitors.forEach(v => seenVisits.add(v.time + v.title));
+  $("#receipts").innerHTML = d.receipts.length ? d.receipts.slice(0, 4).map(r => receipt(r)).join("")
+    : `<div class="empty">Receipts appear here after an agent's answer passes the license check.</div>`;
+  $("#content-rows").innerHTML = d.content.map(c => `<tr><td><b style="font-weight:600">${esc(c.title)}</b><div class="sub mono">${esc(c.path)}</div></td>
+    <td class="mono">${esc(c.price_display)}</td><td>${esc(licShort(c.license_id))}</td><td class="num">${c.asked}</td><td class="num">${c.paid_reads}</td></tr>`).join("");
+}
+function setTrack(n) { $$("#track .s").forEach((s, i) => s.classList.toggle("on", i < n)); }
+$("#payout-btn").onclick = async () => {
+  const btn = $("#payout-btn"); btn.disabled = true; btn.textContent = "Sending to PayPal…"; setTrack(2);
+  try {
+    const r = await api("/v1/demo/settle", { method: "POST" });
+    const mine = (r.payouts || []).find(p => p.publisher === pubData.name);
+    if (mine) { setTrack(3); toast(`$${mine.amount_usd} sent to your PayPal`, `PayPal Payouts batch ${r.paypal_batch_id}`, "$", "var(--blue)"); }
+    else toast("Nothing to pay yet", "Payouts are sent in whole cents; smaller balances wait for the next batch.", "·", "var(--muted)");
+  } catch (e) { toast("PayPal payout failed", e.message, "!", "var(--red)"); }
+  btn.disabled = false; btn.textContent = "Pay me via PayPal";
+  loadPublisher();
+};
+
+/* ---------- setup wizard ---------- */
+let scanned = null, licenses = [];
+function rail(n) { $$("#rail .r").forEach((r, i) => { r.classList.toggle("on", i === n); r.classList.toggle("done", i < n); }); }
+$("#use-demo").onclick = () => { $("#site-url").value = "http://127.0.0.1:8002"; $("#scan-form").requestSubmit(); };
+$("#scan-form").onsubmit = async e => {
+  e.preventDefault();
+  const url = $("#site-url").value.trim(); if (!url) return;
+  const log = $("#scan-log"), btn = $("#scan-btn"); log.hidden = false; btn.disabled = true; $("#w-prices").hidden = true;
+  const line = (t, cls = "") => { log.insertAdjacentHTML("beforeend", `<div class="${cls}">${t}</div>`); };
+  log.innerHTML = "";
+  line(`→ GET ${esc(url)}/sitemap.xml`);
+  const req = api("/v1/demo/scan", { method: "POST", body: JSON.stringify({ url, publisher_id: url.includes("127.0.0.1:8002") || url.includes("localhost:8002") ? pubId : null }) });
+  await sleep(500); line("→ reading pages…"); await sleep(500); line("→ asking the AI to price each page by originality…", "k");
+  try {
+    scanned = await req;
+    line(`✓ ${esc(scanned.site)} · found ${scanned.pages.length} pages via ${esc(scanned.found_via)} · ${scanned.ms} ms`, "ok");
+    licenses = licenses.length ? licenses : await api("/v1/demo/licenses");
+    renderPages(); rail(1);
+  } catch (err) { line(`✗ ${esc(err.message)}`, "k"); }
+  btn.disabled = false;
+};
+function renderPages() {
+  $("#w-prices").hidden = false;
+  $("#priced-by").textContent = scanned.ai_model ? `prices suggested by ${scanned.ai_model}` : "prices suggested by the fallback heuristic";
+  $("#pages").innerHTML = scanned.pages.map((p, i) => `<div class="pg" style="animation-delay:${i * 70}ms">
+      <div class="tt-wrap"><div class="tt">${esc(p.title)}</div><div class="why">${esc(p.reason)} · ${p.words} words</div></div>
+      <label class="price-in" style="animation-delay:${200 + i * 70}ms">$<input data-i="${i}" class="pin" inputmode="decimal" value="${(p.suggested_price / 10000).toFixed(4)}" aria-label="Price for ${esc(p.title)}"></label>
+      <select class="field lin" data-i="${i}" aria-label="License for ${esc(p.title)}" style="padding:8px">${licenses.map(l =>
+        `<option value="${l.id}" ${(p.kind === "api" ? "lic_data_1h" : (p.current_license || "lic_read_24h")) === l.id ? "selected" : ""}>${esc(FF.LICENSES[l.id]?.opt || l.id)}</option>`).join("")}</select>
+    </div>`).join("");
+  $("#w-prices").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: "start" });
+}
+$$("#policy button").forEach(b => b.onclick = () => {
+  $$("#policy button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  $$(".pin").forEach(inp => { const p = scanned.pages[+inp.dataset.i];
+    inp.value = b.dataset.p === "free" ? "0.0000" : b.dataset.p === "block" ? "blocked" : (p.suggested_price / 10000).toFixed(4); inp.disabled = b.dataset.p !== "charge"; });
+});
+$("#to-connect").onclick = () => { $("#w-connect").hidden = false; renderConn("link"); rail(2); $("#w-connect").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth" }); };
+function renderConn(c) {
+  $$("#conn button").forEach(x => x.setAttribute("aria-pressed", x.dataset.c === c));
+  const gw = FF.gatewayBase(), host = (() => { try { return new URL(scanned.base).hostname; } catch { return "yourblog.com"; } })();
+  $("#conn-body").innerHTML = c === "link" ? `<p class="sub" style="margin:0">Fastest. AI agents use your Fairfetch address; people keep using your normal site.</p>
+      <div class="code">AI address for ${esc(host)}\n${esc(gw)}/blog/&lt;page&gt;\n\nPrice list for agents\n${esc(gw)}/.well-known/fairfetch.json</div>`
+    : c === "dns" ? `<p class="sub" style="margin:0">Serve AI traffic on your own domain. Add one record at your DNS provider:</p>
+      <div class="code">Type   Name   Value\nCNAME  ai     gateway.fairfetch.app\n\n→ https://ai.${esc(host)}/blog/&lt;page&gt;</div>`
+    : `<p class="sub" style="margin:0">Already run your own server? Send AI bots to the gateway in one line:</p>
+      <div class="code"># FastAPI / Starlette\nfrom fairfetch import AIGate\napp.add_middleware(AIGate, gateway="${esc(gw)}")\n\n// Express\napp.use(require("fairfetch").aiGate({ gateway: "${esc(gw)}" }))</div>
+      <p class="sub" style="margin:0">The middleware package is on the roadmap; the gateway behind it is what runs in this demo.</p>`;
+}
+$$("#conn button").forEach(b => b.onclick = () => renderConn(b.dataset.c));
+$("#go-live").onclick = async () => {
+  const policy = $('#policy [aria-pressed="true"]').dataset.p;
+  const items = scanned.pages.map((p, i) => ({ p, price: Math.round(parseFloat($(`.pin[data-i="${i}"]`).value) * 10000), lic: $(`.lin[data-i="${i}"]`).value }))
+    .filter(x => x.p.resource_id);
+  const btn = $("#go-live"), msg = $("#go-msg");
+  if (!items.length) { msg.innerHTML = `Your pages are priced. To go live on <b>${esc(scanned.site)}</b>, add the DNS record above; this demo can route only the demo site, so try “Use the demo site”.`; return; }
+  if (policy !== "charge") { msg.textContent = policy === "free" ? "Free access means no gateway is needed. Choose “Pay to read” to charge." : "Blocking is a robots.txt rule. Choose “Pay to read” to earn instead."; return; }
+  if (items.some(x => !(x.price >= 10))) { msg.textContent = "Every price must be at least $0.0010."; return; }
+  btn.disabled = true; btn.textContent = "Going live…";
+  try {
+    const r = await api("/v1/demo/go-live", { method: "POST", body: JSON.stringify({ items: items.map(x => ({ resource_id: x.p.resource_id, price: x.price, license_id: x.lic })) }) });
+    $("#w-test").hidden = false; rail(3);
+    $("#live-banner").innerHTML = `<div class="live-banner"><span style="font-size:28px">●</span><div><b>You're live.</b><div style="color:var(--ink-2)">${r.live} pages are behind the gateway. AI agents now get a price instead of a free page.</div></div></div>`;
+    $("#w-test").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth" });
+    loadPublisher();
+  } catch (e) { msg.textContent = e.message; }
+  btn.disabled = false; btn.textContent = "Go live";
+};
+$("#test-btn").onclick = async () => {
+  const page = scanned?.pages.find(p => p.resource_id && p.path.startsWith("/blog/")) || { path: "/blog/python-speed-benchmark" };
+  const out = $("#test-out"), btn = $("#test-btn"); btn.disabled = true;
+  out.innerHTML = `<div class="console"><div>→ GET ${esc(FF.gatewayBase() + page.path)}</div><div>  User-Agent: ExampleAIBot/1.0 (test) · no payment</div></div>`;
+  try {
+    const r = await api("/v1/demo/test-bot", { method: "POST", body: JSON.stringify({ path: page.path }) });
+    const b = r.body;
+    out.innerHTML = `<div class="console"><div>→ GET ${esc(FF.gatewayBase() + page.path)}</div><div>  User-Agent: ExampleAIBot/1.0 (test) · no payment</div>
+      <div class="k">← HTTP ${r.status} ${r.status === 402 ? "Payment Required" : ""} · ${r.ms} ms</div>
+      <div>  ${esc(b.title || "")}</div><div>  price ${esc(b.price?.display || "-")} · license ${esc(b.license?.id || "-")} · preview ${b.preview?.word_count || 0} words</div>
+      <div class="ok">✓ The bot got a price instead of your page.</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"><a class="btn btn-primary btn-sm" href="#agent">Now be the agent owner →</a><a class="btn btn-ghost btn-sm" href="#publisher">Go to overview</a></div>`;
+    toast("Test bot got HTTP 402", `${b.price?.display || ""} to read ${b.title || page.path}`, "402", "var(--ink)");
+  } catch (e) { out.innerHTML = `<div class="console"><div class="k">${esc(e.message)}</div></div>`; }
+  btn.disabled = false;
+};
+
+/* ================= demo guide ================= */
+const GUIDE = [
+  { t: "Publisher: put the site behind Fairfetch", cap: "Scan the demo site, accept the AI prices, go live, send a test bot.", go: "#publisher-setup", el: "#w-site" },
+  { t: "Owner: fund the wallet with PayPal", cap: "Add $5 through PayPal Checkout (sandbox), then set a rule in plain English.", go: "#agent", el: "#wallet-card" },
+  { t: "Ask the agent", cap: "Pick the Python question. Watch it price, choose, pay and read.", go: "#agent", el: "#composer" },
+  { t: "Publisher: see the money arrive", cap: "Earnings, who paid and why, and how the work was used.", go: "#publisher", el: "#earn-card" },
+  { t: "Catch a copy-paste agent", cap: "Switch to Copy-paste mode and ask again. The license check catches it.", go: "#agent", el: ".seg", sloppy: true },
+  { t: "Pay the publisher with PayPal", cap: "Send earnings with PayPal Payouts.", go: "#publisher", el: "#payout-btn" },
+];
+let guideStep = 0;
+function renderGuide() {
+  $("#guide-steps").innerHTML = GUIDE.map((g, i) => `<button class="g ${i === guideStep ? "on" : i < guideStep ? "done" : ""}" data-g="${i}"><i>${i < guideStep ? "✓" : i + 1}</i>${esc(g.t)}</button>`).join("") +
+    `<span class="cap">${esc(GUIDE[guideStep].cap)}</span>`;
+  $$("#guide-steps .g").forEach(b => b.onclick = () => goGuide(+b.dataset.g));
+}
+function goGuide(i) {
+  guideStep = i; const g = GUIDE[i];
+  if (location.hash !== g.go) location.hash = g.go; else route();
+  if (g.sloppy) $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === "sloppy"));
+  setTimeout(() => { const el = $(g.el); if (el) { el.scrollIntoView({ block: "center", behavior: REDUCED ? "auto" : "smooth" }); el.classList.add("hl"); setTimeout(() => el.classList.remove("hl"), 3400); } }, 250);
+  renderGuide();
+}
+$("#guide-toggle").onclick = () => { const g = $("#guide"); g.hidden = !g.hidden; $("#guide-toggle").setAttribute("aria-expanded", !g.hidden); };
+
+/* ================= boot ================= */
+(async () => {
+  await Promise.all([loadCatalog(), loadPublishers()]);
+  route();
+  setInterval(() => { if (document.hidden) return; role === "publisher" ? loadPublisher() : (!running && loadOwner()); }, 5000);
+})();
+</script>
+</body>
+</html>

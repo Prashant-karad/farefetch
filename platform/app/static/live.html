@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fairfetch Live</title>
+<title>Fairfetch Under the Hood</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -221,7 +221,7 @@ a { color: var(--req); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>Fair<span>fetch</span> Live</h1>
+      <h1>Fair<span>fetch</span> · under the hood</h1>
       <p>An AI agent pays publishers per read, through HTTP 402, then has to prove it used their work fairly. Everything below is the real system running.</p>
     </div>
     <div class="health" id="health" aria-label="System status"></div>
@@ -229,13 +229,13 @@ a { color: var(--req); }
 
   <section class="controls" aria-label="Run the agent">
     <div class="q">
-      <input id="question" aria-label="Question for the research agent" value="When should I sow soybean in Pune and how do I test my soil first?">
+      <input id="question" aria-label="Question for the research agent" value="How do I make my slow Python code faster, and which approach gives the biggest speed-up?">
       <div class="presets">
         <span class="note">Try:</span>
-        <button class="chip" data-q="When should I sow soybean in Pune and how do I test my soil first?">Soybean sowing in Pune</button>
-        <button class="chip" data-q="How do I test my soil before sowing?">Soil testing</button>
-        <button class="chip" data-q="What are today's mandi prices for onion and soybean in Maharashtra?">Mandi prices (paid API)</button>
-        <button class="chip" data-q="Why do soybean leaves turn yellow in July?">Yellow soybean leaves</button>
+        <button class="chip" data-q="How do I make my slow Python code faster, and which approach gives the biggest speed-up?">Faster Python</button>
+        <button class="chip" data-q="How do I learn Python fast?">Learn Python fast</button>
+        <button class="chip" data-q="What are the developer job trends for Python and JavaScript this week?">Job trends (paid API)</button>
+        <button class="chip" data-q="Why is my SQL query slow and how do indexes help?">Slow SQL query</button>
       </div>
     </div>
     <div class="go">
@@ -319,9 +319,9 @@ async function api(path, opts = {}) {
 
 /* ================= network map ================= */
 const NODES = {
-  agent:    { x: 120, y: 192, t: "Research agent", s: "Demo Research Lab", health: null },
+  agent:    { x: 120, y: 192, t: "Research agent", s: "Maya's Study Assistant", health: null },
   gateway:  { x: 440, y: 62,  t: "Gateway :8000", s: "402 · verifies passes", health: "Gateway" },
-  origin:   { x: 760, y: 62,  t: "Publisher sites :8002", s: "Krishi Today · Monsoon", health: "Publisher origin" },
+  origin:   { x: 760, y: 62,  t: "Publisher sites :8002", s: "Code Dojo · Learn Daily", health: "Publisher origin" },
   platform: { x: 440, y: 300, t: "Platform :8001", s: "wallet · ledger · signer", health: "Platform" },
   paypal:   { x: 760, y: 300, t: "PayPal", s: "Checkout in · Payouts out", health: "PayPal" },
   ai:       { x: 120, y: 336, t: "AI model", s: "Groq", health: "AI model" },
