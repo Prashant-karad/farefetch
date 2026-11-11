@@ -11,6 +11,19 @@ repairs them, and issues a **signed usage receipt** the publisher can verify. Pu
 
 > Paying for access is solved by others. Fairfetch adds the missing half: **proof of fair use after payment.**
 
+## See it
+
+| Page | What it shows |
+|---|---|
+| **`/`** | Landing page: the idea in 30 seconds, with an animated toll gate and a **live 402 fetched from the gateway** |
+| **`/app#publisher-setup`** | Publisher setup: paste a URL → real sitemap/RSS scan → AI price per page → licenses → go live → **send a test bot** |
+| **`/app#agent`** | Agent owner: PayPal top-up, plain-English spending rules, access-pass tickets, and a chat that runs the **real agent** |
+| **`/app#publisher`** | Publisher: earnings odometer, AI visitors who paid (and why), signed usage receipts, **PayPal Payouts** |
+| **`/live`** | Under the hood: every HTTP call of an agent run on a network map, the double-entry ledger, signature verification |
+
+The demo publishers are **Code Dojo** (programming tutorials with original benchmarks) and **Learn Daily**
+(study and career how-tos): the kind of writing AI assistants answer from every day. Articles are sample content.
+
 ## How it works
 
 ```
@@ -24,6 +37,8 @@ repairs them, and issues a **signed usage receipt** the publisher can verify. Pu
           • POST /v1/usage/check       license guard → fix → signed usage receipt
           • POST /v1/admin/payouts/settle   PayPal Payouts batch to publishers
           • GET  /dashboard            AG Grid dashboards (publisher, agent owner, money)
+          • /v1/demo/*                 endpoints behind the app (demo only, DEMO_MODE=false disables)
+ Gateway :8000 /.well-known/fairfetch.json   machine-readable price list for agents
 ```
 
 ## Where PayPal and AI are used
@@ -47,15 +62,18 @@ cp .env.example .env          # fill PayPal sandbox + Groq values
 make keys                     # ES256 signing key pair
 make up                       # PostgreSQL + Redis
 make install                  # virtual environments for platform, gateway, agent
-make migrate && make seed     # schema + demo data (copy the printed API key into .env)
-make setup                    # paid API resource + publisher PayPal emails
+make reset-demo               # schema + demo data; writes the agent API key into .env
 make dev                      # origin + platform + gateway
 ```
+
+Open **http://127.0.0.1:8001/** (in Codespaces: forward port 8001 and open its URL). The app has a
+**Demo guide** strip that walks through the whole story in six steps.
 
 Then, in another terminal:
 
 ```bash
-make topup                    # open approve_url, pay with a US sandbox Personal account
+make topup                    # open approve_url, pay with a US sandbox Personal account (or use the app)
+make dev-credit               # LOCAL TESTING ONLY: wallet credit without PayPal, labelled DEV-CREDIT
 make agent                    # research agent: 402 → decide → buy → read → cited answer → receipt
 make agent-sloppy             # copies text on purpose: watch the license guard catch and fix it
 make settle                   # PayPal Payouts to publishers
@@ -63,7 +81,7 @@ make ledger-check             # must return 0 rows
 make test                     # license guard unit tests
 ```
 
-Dashboard: `http://127.0.0.1:8001/dashboard`
+Classic tables: `http://127.0.0.1:8001/dashboard`
 
 ### PayPal sandbox notes
 Use **United States** sandbox accounts (a US Business account linked to your app, US Personal accounts

@@ -5,7 +5,7 @@ API   := $(shell grep '^DEMO_AGENT_API_KEY=' .env 2>/dev/null | cut -d= -f2)
 TOKEN := $(shell grep '^INTERNAL_TOKEN=' .env 2>/dev/null | cut -d= -f2)
 P     := http://127.0.0.1:8001
 
-.PHONY: help install up down keys migrate seed setup dev agent agent-sloppy settle topup wallet ledger-check test
+.PHONY: help install up down keys migrate seed setup dev agent agent-sloppy settle topup wallet ledger-check test reset-demo dev-credit
 
 help:            ## Show commands
 	@grep -E '^[a-z-]+:.*##' Makefile | sed 's/:.*## /\t/'
@@ -58,3 +58,9 @@ ledger-check:    ## Every transaction must sum to zero (expect 0 rows)
 
 test:            ## Unit tests for the license guard core (no services needed)
 	cd platform && .venv/bin/python -m unittest discover -s tests -v
+
+reset-demo:      ## Fresh demo database (backs up the old one to .backup/), then restart `make dev`
+	./scripts/reset_demo.sh
+
+dev-credit:      ## LOCAL TESTING ONLY: add five dollars to the demo wallet without PayPal (labelled DEV-CREDIT)
+	cd platform && .venv/bin/python -m scripts.dev_credit 5.00
