@@ -161,3 +161,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
     transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }
+
+/* light / dark toggle */
+.theme-btn { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--line-2); background: var(--sheet); color: var(--ink);
+  display: inline-grid; place-items: center; cursor: pointer; padding: 0; flex: none; transition: border-color .2s, transform .2s; }
+.theme-btn:hover { border-color: var(--ink); transform: rotate(-12deg); }
+.theme-btn svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.theme-btn .moon { fill: currentColor; stroke: none; }
+.theme-btn .sun { display: none; }
+.theme-btn.is-dark .sun { display: block; }
+.theme-btn.is-dark .moon { display: none; }

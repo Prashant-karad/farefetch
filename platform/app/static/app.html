@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/static/ff.css">
+<script>/* apply a saved light/dark choice before the page paints (no flash) */
+try { const t = localStorage.getItem("ff_theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-grid.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-theme-quartz.css">
 <style>
@@ -244,6 +246,10 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
       <span class="chip ticket" id="testmode" hidden title="Payments use PayPal sandbox: real PayPal flows, no real money">Test mode · PayPal sandbox</span>
       <a class="btn btn-ghost btn-sm" href="/live" target="_blank" rel="noopener">Under the hood ↗</a>
       <button class="btn btn-ghost btn-sm" id="guide-toggle">Take the tour</button>
+      <button class="theme-btn" id="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch light / dark">
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
     </div>
   </div>
 </div>

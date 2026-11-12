@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/static/ff.css">
+<script>/* apply a saved light/dark choice before the page paints (no flash) */
+try { const t = localStorage.getItem("ff_theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
 /* Layout: editorial landing. Full-bleed animated "toll gate" stage, then a sticky three-step explainer,
    two-sided value, PayPal money loop, proof, CTA. */
@@ -193,6 +195,10 @@ footer a:hover { color: var(--ink); }
       <a class="hide-sm" href="https://github.com/Prashant-karad/farefetch#readme" target="_blank" rel="noopener">Docs</a>
       <a class="hide-sm" href="/live">Under the hood</a>
       <a class="btn btn-ghost btn-sm hide-sm" href="/app">Open the app</a>
+      <button class="theme-btn" id="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch light / dark">
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
       <a class="btn btn-ink btn-sm" href="/app?tour=1#publisher-setup">Try it <span class="arrow">→</span></a>
     </div>
   </div>
@@ -397,6 +403,7 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
   colors(); size();
   addEventListener("resize", size);
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", colors);
+  addEventListener("ff-theme", () => setTimeout(colors, 30));  // redraw the animation in the new colours
 
   const PATHS = [["/codedojo/what-is-oop", 400, 0], ["/moneywise/compound-interest", 300, 1], ["/studynest/photosynthesis", 160, 2],
                  ["/codedojo/sql-joins-explained", 350, 0], ["/moneywise/index-funds", 250, 1], ["/studynest/newtons-laws", 150, 2],

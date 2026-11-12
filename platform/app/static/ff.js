@@ -101,5 +101,23 @@ const FF = (() => {
     </div>`;
   }
 
-  return { $, $$, esc, usd, cents, sleep, api, gatewayBase, ago, odometer, toast, ticket, receipt, licShort, countdown, REDUCED, LICENSES };
+  /* Light / dark: follows the device until the visitor chooses; the choice is remembered. */
+  const darkQuery = matchMedia("(prefers-color-scheme: dark)");
+  const isDark = () => (document.documentElement.dataset.theme || (darkQuery.matches ? "dark" : "light")) === "dark";
+  function paintToggle() {
+    const b = document.getElementById("theme-toggle"); if (!b) return;
+    b.classList.toggle("is-dark", isDark());
+    b.setAttribute("aria-label", isDark() ? "Switch to light mode" : "Switch to dark mode");
+  }
+  function setTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem("ff_theme", t); } catch {}
+    paintToggle();
+    dispatchEvent(new Event("ff-theme"));
+  }
+  document.addEventListener("click", e => { if (e.target.closest("#theme-toggle")) setTheme(isDark() ? "light" : "dark"); });
+  darkQuery.addEventListener("change", paintToggle);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", paintToggle); else paintToggle();
+
+  return { $, $$, esc, usd, cents, sleep, api, setTheme, gatewayBase, ago, odometer, toast, ticket, receipt, licShort, countdown, REDUCED, LICENSES };
 })();
