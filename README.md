@@ -56,6 +56,13 @@ publisher's own site at `/p/<site>/<page>`. Articles are original sample content
 | **PayPal Payouts** | Publishers' earnings are settled in one batch. Ledger reserves funds first; a PayPal failure posts reversal transactions. |
 | **LLM (Groq by default, Gemini optional)** | 1) agent's pay/skip decisions with reasons, 2) writing the cited answer, 3) license-guard rewrite of violating text, 4) plain-English budget rules → structured limits, 5) content uniqueness → suggested price. Every AI step has a deterministic fallback. |
 
+## Sponsor tools used
+| Tool | How Fairfetch uses it |
+|---|---|
+| **Render** | Hosts the live app as one web service (`deploy/start.sh`) with Render PostgreSQL and Render Key Value, plus the three publisher websites as Render static sites (`sites/`). |
+| **AG Grid** | The publisher's content table in the app (sort, filter, edit a price in place; the gateway charges the new price immediately) and the classic `/dashboard`. |
+| **Postman** | `docs/postman/fairfetch.postman_collection.json`: a "be the agent yourself" collection that runs the protocol with tests: 402 → purchase → read → license check → receipt verification. |
+
 ## Engineering highlights
 - **Double-entry ledger**: every transaction sums to zero, append-only, corrections by reversal; wallet can never go negative (atomic conditional `UPDATE` + DB `CHECK`).
 - **Idempotency** everywhere money moves (`Idempotency-Key`, unique constraints, PayPal request IDs); the agent derives keys deterministically so crashes can't double-charge.
