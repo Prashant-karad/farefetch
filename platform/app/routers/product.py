@@ -185,7 +185,8 @@ async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
             urls = urls[:40]
 
             # Pages already on Fairfetch are recognised by their real address
-            known = {norm(r.origin_url): r for r in (await session.scalars(select(Resource))).all() if r.origin_url}
+            known = {norm(r.origin_url): r for r in (await session.scalars(select(Resource))).all()
+                     if r.origin_url and not r.path.startswith("/retired/")}
             urls = urls[:10]
 
             blocked = []
@@ -291,7 +292,7 @@ async def go_live(body: GoLiveRequest, session: AsyncSession = Depends(get_sessi
             session.add(Account(type="publisher_payable", owner_id=publisher_id))
             await session.flush()
         else:
-            pub.paypal_email = body.paypal_email
+            pub.paypal_email, pub.website_url = body.paypal_email, body.site.base
     for item in body.items:
         if item.license_id not in licenses:
             raise HTTPException(400, detail={"code": "bad_license", "message": f"Unknown license {item.license_id}"})
@@ -306,9 +307,12 @@ async def go_live(body: GoLiveRequest, session: AsyncSession = Depends(get_sessi
                 raise HTTPException(400, detail={"code": "bad_item", "message": "New pages need a url and a title"})
             page = slugify(urlparse(item.url).path.strip("/").split("/")[-1] or item.title)
             path = f"/p/{slug}/{page}"
-            res = await session.scalar(select(Resource).where(Resource.path == path))
+            rid = f"res_{slug}_{page}".replace("-", "_")[:64]
+            res = await session.scalar(select(Resource).where(Resource.path == path)) or await session.get(Resource, rid)
+            if res is not None and res.path != path:  # a page retired when the site was disconnected: bring it back
+                res.path, res.origin_url = path, item.url
             if res is None:
-                res = Resource(id=f"res_{slug}_{page}".replace("-", "_")[:64], publisher_id=publisher_id, path=path,
+                res = Resource(id=rid, publisher_id=publisher_id, path=path,
                                origin_url=item.url, kind="api" if item.kind == "api" else "article", title=item.title[:300],
                                price=item.price, license_id=item.license_id,
                                preview=" ".join((item.excerpt or "").replace(" …", "").split()[:30]) + " ...", word_count=item.words)
@@ -320,6 +324,26 @@ async def go_live(body: GoLiveRequest, session: AsyncSession = Depends(get_sessi
     for path in changed:
         await redis_client.delete(f"gw:resource:{path}")
     return {"live": len(changed), "paths": changed, "publisher_id": publisher_id}
+
+
+class DisconnectRequest(BaseModel):
+    publisher_id: str = Field(pattern=r"^pub_[a-z0-9_]+$")
+
+
+@router.post("/v1/demo/disconnect")
+async def disconnect(body: DisconnectRequest, session: AsyncSession = Depends(get_session)):
+    """Take a publisher's site off Fairfetch: its pages are retired (no longer sold), nothing is deleted."""
+    pub = await session.get(Publisher, body.publisher_id)
+    if pub is None:
+        raise HTTPException(404, detail={"code": "publisher_not_found", "message": "No such publisher"})
+    pages = (await session.scalars(select(Resource).where(Resource.publisher_id == pub.id,
+                                                          Resource.path.notlike("/retired/%")))).all()
+    for r in pages:
+        await redis_client.delete(f"gw:resource:{r.path}")
+        r.path = "/retired" + r.path
+    pub.website_url = None
+    await session.commit()
+    return {"publisher_id": pub.id, "retired_pages": len(pages)}
 
 
 class TestBotRequest(BaseModel):
