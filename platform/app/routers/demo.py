@@ -138,9 +138,8 @@ async def run_agent(q: str = "How do I make my slow Python code faster, and whic
     q = q.strip()[:300] or "How do I learn Python fast?"
 
     async def stream():
-        if _run_lock.locked():
-            yield sse({"event": "error", "message": "Another agent run is in progress. Wait for it to finish."})
-            return
+        if _run_lock.locked():  # one shared wallet: runs take turns instead of failing
+            yield sse({"event": "queued", "message": "Another visitor's agent is running. Yours starts next."})
         async with _run_lock:
             run_id = f"live-{uuid.uuid4().hex[:12]}"
             proc = await asyncio.create_subprocess_exec(

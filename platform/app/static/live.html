@@ -242,7 +242,7 @@ a { color: var(--req); }
       <div class="opts">
         <div class="seg" role="group" aria-label="Agent behaviour">
           <button data-mode="careful" aria-pressed="true">Careful agent</button>
-          <button data-mode="sloppy" aria-pressed="false">Copy-paste agent</button>
+          <button data-mode="sloppy" aria-pressed="false">Careless agent</button>
         </div>
         <label class="check"><input type="checkbox" id="fresh" checked> Start with no passes</label>
         <div class="seg" role="group" aria-label="Playback speed">
@@ -278,7 +278,7 @@ a { color: var(--req); }
               <div class="act"><b>The research agent</b><span>Finds sources, sees a price behind HTTP 402, decides what is worth buying, and pays.</span></div>
               <div class="act"><b>The publisher</b><span>Gets paid per read through PayPal Payouts, plus a signed receipt showing how the work was used.</span></div>
             </div>
-            <p class="note">Press <b>Run the agent</b>. Each step below is the agent's own trace, with the real HTTP status, headers and timing behind every card. Switch to <b>Copy-paste agent</b> to watch the license guard catch copied text.</p>
+            <p class="note">Press <b>Run the agent</b>. Each step below is the agent's own trace, with the real HTTP status, headers and timing behind every card. Switch to <b>Careless agent</b> to watch the license guard catch copied text.</p>
           </li>
         </ol>
       </section>
@@ -582,7 +582,7 @@ async function handle(ev) {
       card("req", `<div class="who">Agent · ${esc(ev.agent?.name)}</div><h3>“${esc(ev.question)}”</h3>
         <div class="row"><span class="tag">wallet ${esc(ev.wallet.display)}</span><span class="tag price">≤ ${usd(ev.budget.max_per_item)} per item</span>
         <span class="tag price">≤ ${usd(ev.budget.max_per_day)} per day</span><span class="tag ai">thinks with ${esc(ev.reasoning)}</span>
-        ${ev.sloppy ? `<span class="tag bad">copy-paste mode</span>` : ""}</div>`);
+        ${ev.sloppy ? `<span class="tag bad">careless mode</span>` : ""}</div>`);
       await packet("agent", "platform", "GET /v1/me + wallet");
       await packet("platform", "agent", `wallet ${ev.wallet.display}`, "price");
       break;

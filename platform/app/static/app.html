@@ -181,12 +181,13 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
       <a href="#publisher" data-role="publisher">Publisher</a>
     </nav>
     <div class="right">
+      <span class="chip ticket" id="testmode" hidden title="Payments use PayPal sandbox: real PayPal flows, no real money">Test mode · PayPal sandbox</span>
       <a class="btn btn-ghost btn-sm" href="/live" target="_blank" rel="noopener">Under the hood ↗</a>
-      <button class="btn btn-ghost btn-sm" id="guide-toggle" aria-expanded="true">Demo guide</button>
+      <button class="btn btn-ghost btn-sm" id="guide-toggle" aria-expanded="false">Take the tour</button>
     </div>
   </div>
 </div>
-<div class="guide gutter" id="guide">
+<div class="guide gutter" id="guide" hidden>
   <div class="in main" style="padding-block:8px" id="guide-steps"></div>
 </div>
 
@@ -227,10 +228,10 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
           <div><h2 class="h" style="font-size:20px">Ask your agent</h2><div class="sub">It finds paid sources, pays within your rules, and returns a license-checked answer.</div></div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <div class="seg" role="group" aria-label="Agent behaviour">
-              <button data-mode="careful" aria-pressed="true">Careful</button>
-              <button data-mode="sloppy" aria-pressed="false" title="Deliberately copies text to show the license guard">Copy-paste (demo)</button>
+              <button data-mode="careful" aria-pressed="true" title="Paraphrases and cites, like a well-behaved agent">Careful agent</button>
+              <button data-mode="sloppy" aria-pressed="false" title="Pastes text and forgets credit, to test the license check">Careless agent</button>
             </div>
-            <label class="sub" style="display:inline-flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="fresh" checked> fresh passes</label>
+            <input type="checkbox" id="fresh" checked hidden>
           </div>
         </div>
         <div class="thread" id="thread">
@@ -319,8 +320,8 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
               <input class="field" id="site-url" aria-label="Website address" placeholder="https://yourblog.com">
               <button class="btn btn-primary" id="scan-btn">Scan my site</button>
             </form>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="sub">No site handy?</span>
-              <button class="chip" id="use-demo" style="cursor:pointer">Use the demo site (Code Dojo, running on :8002)</button></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="sub">Or try it with</span>
+              <button class="chip blue" id="use-demo" style="cursor:pointer">codedojo.dev</button><span class="sub">a programming blog already on Fairfetch</span></div>
             <div class="console" id="scan-log" hidden></div>
           </div>
           <div class="sheet card" id="w-prices" hidden>
@@ -339,7 +340,6 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
             <div class="seg" role="group" aria-label="Connection method" id="conn">
               <button type="button" data-c="link" aria-pressed="true">Fairfetch link</button>
               <button type="button" data-c="dns" aria-pressed="false">Your domain (DNS)</button>
-              <button type="button" data-c="code" aria-pressed="false">Code</button>
             </div>
             <div id="conn-body"></div>
             <button class="btn btn-primary" id="go-live" style="justify-self:start">Go live</button>
@@ -412,8 +412,8 @@ async function loadOwner() {
     $("#rule-chips").innerHTML = `<span class="chip blue">max ${r.max_per_item_display} per item</span><span class="chip blue">max ${r.max_per_day_display} a day</span>` +
       (r.approval_display ? `<span class="chip blue">ask me above ${r.approval_display}</span>` : "");
   }
-  $("#topups").innerHTML = owner.topups.slice(0, 2).map(t => `<div class="card-h" style="font-size:12.5px"><span class="mono">${esc(t.order?.startsWith("DEV") ? "dev credit (not PayPal)" : "PayPal " + (t.order || ""))}</span>
-    <span class="chip ${t.status === "completed" ? "green" : ""}" style="font-size:11px">${esc(t.amount)} ${esc(t.status)}</span></div>`).join("");
+  $("#topups").innerHTML = owner.topups.filter(t => !t.order?.startsWith("DEV")).slice(0, 2).map(t => `<div class="card-h" style="font-size:12.5px"><span class="mono">${esc("PayPal " + (t.order || ""))}</span>
+    <span class="chip ${t.status === "completed" ? "green" : ""}" style="font-size:11px">${esc(t.amount)} ${esc(t.status === "created" ? "awaiting approval" : t.status)}</span></div>`).join("");
   const known = new Set($$("#passes .ticket").map(t => t.dataset.g));
   $("#passes").innerHTML = owner.passes.length ? owner.passes.map(p => ticket({ ...p, printing: !known.has(p.grant_id) && known.size > 0 }).replace('class="ticket', `data-g="${p.grant_id}" class="ticket`)).join("")
     : `<div class="empty">No passes yet. When your agent pays for a page, its ticket appears here and counts down to expiry.</div>`;
@@ -427,7 +427,7 @@ async function startTopup() {
   try {
     const r = await api("/v1/demo/topup", { method: "POST" });
     area.innerHTML = `<a class="btn btn-primary" href="${esc(r.approve_url)}" target="_blank" rel="noopener">1 · Approve $5.00 in PayPal ↗</a>
-      <button class="btn btn-ghost" id="capture-btn">2 · I approved it, add the money</button><span class="sub" id="cap-msg">PayPal sandbox opens in a new tab.</span>`;
+      <button class="btn btn-ghost" id="capture-btn">2 · I approved it, add the money</button><span class="sub" id="cap-msg">PayPal opens in a new tab.</span>${buyerBox()}`;
     $("#capture-btn").onclick = async () => {
       $("#cap-msg").textContent = "Capturing the payment at PayPal…";
       try {
@@ -481,6 +481,12 @@ function cites(text, offers) {
 async function ask() {
   const q = $("#q").value.trim();
   if (!q || running) return;
+  if (owner && owner.wallet.balance < 200) {
+    toast("Add money first", "Your agent's wallet is empty. Use “Add $5.00 with PayPal”.", "$", "var(--blue)");
+    $("#wallet-card").classList.add("hl"); setTimeout(() => $("#wallet-card").classList.remove("hl"), 3400);
+    $("#wallet-card").scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   running = true; $("#send").disabled = true; $("#hello")?.remove(); $("#q").value = "";
   const sloppy = $('[data-mode="sloppy"]').getAttribute("aria-pressed") === "true";
   const thread = $("#thread");
@@ -539,9 +545,12 @@ async function ask() {
         if (!payStep) { payStep = addStep("$", "ticket", "Paid from your wallet", ""); sum.textContent = "Paying…"; }
         const d = $(".d", payStep);
         if (ev.http.status >= 400) {
-          const msg = b?.detail?.message || "refused";
-          d.insertAdjacentHTML("beforeend", `<div class="chip red" style="white-space:normal">Blocked by your rules: ${esc(o.title)}. ${esc(msg)}</div>`);
-          toast("Purchase blocked by your rules", msg, "!", "var(--red)");
+          const msg = b?.detail?.message || "refused", code = b?.detail?.code || "";
+          const empty = code === "insufficient_funds";
+          const head = empty ? "Wallet is empty" : code.startsWith("over_") || code === "approval_required" ? "Stopped by your spending rules" : "Purchase refused";
+          d.insertAdjacentHTML("beforeend", `<div class="chip red" style="white-space:normal">${head}: ${esc(o.title)}. ${esc(msg)}</div>`);
+          toast(head, empty ? "Add money with PayPal in the wallet panel" : msg, "!", "var(--red)");
+          if (empty) { $("#wallet-card").classList.add("hl"); setTimeout(() => $("#wallet-card").classList.remove("hl"), 3400); }
         } else {
           const claims = (() => { try { return JSON.parse(atob(b.pass_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch { return {}; } })();
           if (!b.already_owned) { paidTotal += b.price; paidPubs.add(pub); }
@@ -586,11 +595,14 @@ async function ask() {
         steps.hidden = true;
         run.insertAdjacentHTML("beforeend", `<div class="answer"><div class="text">${cites(ev.final_answer, offers)}</div>
           <div class="foot"><button class="rcpt-btn ${r.passed ? "" : "red"}" type="button">Receipt · ${r.passed ? ((r.violations_found || []).length ? "fixed · fair use" : "fair use") : "violation"}</button>
-          <span class="sub mono">${esc(ev.receipt_id)}</span></div></div>`);
+          <span class="sub mono">${esc(ev.receipt_id)}</span><a class="sub" href="/live" target="_blank" rel="noopener" style="margin-left:auto">See every HTTP call behind an answer ↗</a></div></div>`);
         $(".rcpt-btn", run).onclick = () => openReceipt(r, offers);
         scroll();
         break;
       }
+      case "queued":
+        sum.textContent = ev.message;
+        break;
       case "error":
         addStep("!", "red", "Something went wrong", esc(ev.message));
         break;
@@ -673,7 +685,7 @@ $("#payout-btn").onclick = async () => {
 /* ---------- setup wizard ---------- */
 let scanned = null, licenses = [];
 function rail(n) { $$("#rail .r").forEach((r, i) => { r.classList.toggle("on", i === n); r.classList.toggle("done", i < n); }); }
-$("#use-demo").onclick = () => { $("#site-url").value = "http://127.0.0.1:8002"; $("#scan-form").requestSubmit(); };
+$("#use-demo").onclick = () => { $("#site-url").value = "https://codedojo.dev"; $("#scan-form").requestSubmit(); };
 $("#scan-form").onsubmit = async e => {
   e.preventDefault();
   const url = $("#site-url").value.trim(); if (!url) return;
@@ -682,6 +694,7 @@ $("#scan-form").onsubmit = async e => {
   log.innerHTML = "";
   line(`→ GET ${esc(url)}/sitemap.xml`);
   const req = api("/v1/demo/scan", { method: "POST", body: JSON.stringify({ url, publisher_id: url.includes("127.0.0.1:8002") || url.includes("localhost:8002") ? pubId : null }) });
+  req.catch(() => {});  // handled below; avoids an unhandled rejection while the log animates
   await sleep(500); line("→ reading pages…"); await sleep(500); line("→ asking the AI to price each page by originality…", "k");
   try {
     scanned = await req;
@@ -713,11 +726,8 @@ function renderConn(c) {
   const gw = FF.gatewayBase(), host = (() => { try { return new URL(scanned.base).hostname; } catch { return "yourblog.com"; } })();
   $("#conn-body").innerHTML = c === "link" ? `<p class="sub" style="margin:0">Fastest. AI agents use your Fairfetch address; people keep using your normal site.</p>
       <div class="code">AI address for ${esc(host)}\n${esc(gw)}/blog/&lt;page&gt;\n\nPrice list for agents\n${esc(gw)}/.well-known/fairfetch.json</div>`
-    : c === "dns" ? `<p class="sub" style="margin:0">Serve AI traffic on your own domain. Add one record at your DNS provider:</p>
-      <div class="code">Type   Name   Value\nCNAME  ai     gateway.fairfetch.app\n\n→ https://ai.${esc(host)}/blog/&lt;page&gt;</div>`
-    : `<p class="sub" style="margin:0">Already run your own server? Send AI bots to the gateway in one line:</p>
-      <div class="code"># FastAPI / Starlette\nfrom fairfetch import AIGate\napp.add_middleware(AIGate, gateway="${esc(gw)}")\n\n// Express\napp.use(require("fairfetch").aiGate({ gateway: "${esc(gw)}" }))</div>
-      <p class="sub" style="margin:0">The middleware package is on the roadmap; the gateway behind it is what runs in this demo.</p>`;
+    : `<p class="sub" style="margin:0">Serve AI traffic on your own domain. Add one record at your DNS provider:</p>
+      <div class="code">Type   Name   Value\nCNAME  ai     ${esc(new URL(gw).hostname)}\n\n→ https://ai.${esc(host)}/blog/&lt;page&gt;</div>`;
 }
 $$("#conn button").forEach(b => b.onclick = () => renderConn(b.dataset.c));
 $("#go-live").onclick = async () => {
@@ -725,7 +735,13 @@ $("#go-live").onclick = async () => {
   const items = scanned.pages.map((p, i) => ({ p, price: Math.round(parseFloat($(`.pin[data-i="${i}"]`).value) * 10000), lic: $(`.lin[data-i="${i}"]`).value }))
     .filter(x => x.p.resource_id);
   const btn = $("#go-live"), msg = $("#go-msg");
-  if (!items.length) { msg.innerHTML = `Your pages are priced. To go live on <b>${esc(scanned.site)}</b>, add the DNS record above; this demo can route only the demo site, so try “Use the demo site”.`; return; }
+  if (!items.length) {
+    msg.innerHTML = `<div class="live-banner" style="background:var(--sheet-2);color:var(--ink)"><span class="spin"></span><div><b style="font-size:18px">Waiting for your DNS record</b>
+      <div class="sub">Your ${scanned.pages.length} pages are priced. Add the record above at your DNS provider and ${esc(scanned.site)} switches on automatically.</div>
+      <div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" id="see-live">See a live site: codedojo.dev →</button></div></div></div>`;
+    $("#see-live").onclick = () => { $("#site-url").value = "https://codedojo.dev"; $("#w-connect").hidden = true; $("#w-test").hidden = true; msg.innerHTML = ""; $("#scan-form").requestSubmit(); $("#w-site").scrollIntoView({ behavior: "smooth" }); };
+    return;
+  }
   if (policy !== "charge") { msg.textContent = policy === "free" ? "Free access means no gateway is needed. Choose “Pay to read” to charge." : "Blocking is a robots.txt rule. Choose “Pay to read” to earn instead."; return; }
   if (items.some(x => !(x.price >= 10))) { msg.textContent = "Every price must be at least $0.0010."; return; }
   btn.disabled = true; btn.textContent = "Going live…";
@@ -757,11 +773,11 @@ $("#test-btn").onclick = async () => {
 
 /* ================= demo guide ================= */
 const GUIDE = [
-  { t: "Publisher: put the site behind Fairfetch", cap: "Scan the demo site, accept the AI prices, go live, send a test bot.", go: "#publisher-setup", el: "#w-site" },
-  { t: "Owner: fund the wallet with PayPal", cap: "Add $5 through PayPal Checkout (sandbox), then set a rule in plain English.", go: "#agent", el: "#wallet-card" },
+  { t: "Publisher: put a site behind Fairfetch", cap: "Click codedojo.dev, accept the AI prices, go live, send a test bot.", go: "#publisher-setup", el: "#w-site" },
+  { t: "Owner: fund the wallet with PayPal", cap: "Add $5 with PayPal Checkout (test login is shown), then write a spending rule.", go: "#agent", el: "#wallet-card" },
   { t: "Ask the agent", cap: "Pick the Python question. Watch it price, choose, pay and read.", go: "#agent", el: "#composer" },
   { t: "Publisher: see the money arrive", cap: "Earnings, who paid and why, and how the work was used.", go: "#publisher", el: "#earn-card" },
-  { t: "Catch a copy-paste agent", cap: "Switch to Copy-paste mode and ask again. The license check catches it.", go: "#agent", el: ".seg", sloppy: true },
+  { t: "Catch a careless agent", cap: "Switch to Careless agent and ask again. The license check catches the copying.", go: "#agent", el: ".seg", sloppy: true },
   { t: "Pay the publisher with PayPal", cap: "Send earnings with PayPal Payouts.", go: "#publisher", el: "#payout-btn" },
 ];
 let guideStep = 0;
@@ -777,11 +793,27 @@ function goGuide(i) {
   setTimeout(() => { const el = $(g.el); if (el) { el.scrollIntoView({ block: "center", behavior: REDUCED ? "auto" : "smooth" }); el.classList.add("hl"); setTimeout(() => el.classList.remove("hl"), 3400); } }, 250);
   renderGuide();
 }
-$("#guide-toggle").onclick = () => { const g = $("#guide"); g.hidden = !g.hidden; $("#guide-toggle").setAttribute("aria-expanded", !g.hidden); };
+function setTour(open) { $("#guide").hidden = !open; $("#guide-toggle").setAttribute("aria-expanded", open); $("#guide-toggle").textContent = open ? "Hide tour" : "Take the tour"; }
+$("#guide-toggle").onclick = () => setTour($("#guide").hidden);
+try { if (!localStorage.getItem("ff_tour_seen")) { setTour(true); localStorage.setItem("ff_tour_seen", "1"); } } catch { setTour(true); }
+
+/* deployment config: test mode + PayPal sandbox test buyer */
+let CONFIG = { test_mode: false, test_buyer: null };
+function buyerBox() {
+  const b = CONFIG.test_buyer; if (!b) return "";
+  return `<div class="sheet" style="padding:10px 12px;display:grid;gap:4px;background:var(--sheet-2);box-shadow:none">
+    <span class="eyebrow">Test PayPal login (sandbox money)</span>
+    <span class="mono" style="font-size:12.5px;overflow-wrap:anywhere">${esc(b.email)} <button type="button" class="chip" data-copy="${esc(b.email)}" style="cursor:pointer">copy</button></span>
+    <span class="mono" style="font-size:12.5px">${esc(b.password)} <button type="button" class="chip" data-copy="${esc(b.password)}" style="cursor:pointer">copy</button></span></div>`;
+}
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-copy]"); if (!c) return;
+  navigator.clipboard?.writeText(c.dataset.copy).then(() => { c.textContent = "copied"; setTimeout(() => c.textContent = "copy", 1200); }).catch(() => {});
+});
 
 /* ================= boot ================= */
 (async () => {
-  await Promise.all([loadCatalog(), loadPublishers()]);
+  await Promise.all([loadCatalog(), loadPublishers(), api("/v1/demo/config").then(c => { CONFIG = c; $("#testmode").hidden = !c.test_mode; }).catch(() => {})]);
   route();
   setInterval(() => { if (document.hidden) return; role === "publisher" ? loadPublisher() : (!running && loadOwner()); }, 5000);
 })();

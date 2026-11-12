@@ -43,6 +43,16 @@ async def app_page():
     return HTMLResponse((STATIC / "app.html").read_text(encoding="utf-8"))
 
 
+@router.get("/v1/demo/config")
+async def config():
+    """What the app needs to know about this deployment. The test buyer is only ever exposed for PayPal sandbox."""
+    sandbox = "sandbox" in settings.paypal_base_url
+    buyer = None
+    if sandbox and settings.paypal_test_buyer_email:
+        buyer = {"email": settings.paypal_test_buyer_email, "password": settings.paypal_test_buyer_password}
+    return {"test_mode": sandbox, "test_buyer": buyer}
+
+
 def ago(dt: datetime) -> str:
     return dt.isoformat(timespec="seconds")
 
@@ -142,6 +152,11 @@ async def discover_pages(client: httpx.AsyncClient, base: str) -> tuple[str, lis
 async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
     """Real scan of a website: find its pages, read them, and let the AI suggest a price for each."""
     url = body.url.strip()
+    publisher_filter = body.publisher_id
+    display_host = None
+    if re.sub(r"^https?://", "", url).strip("/").lower() in ("codedojo.dev", "www.codedojo.dev"):
+        # Code Dojo is the publisher this deployment hosts; its site runs privately behind the gateway
+        url, publisher_filter, display_host = settings.origin_url, "pub_code_dojo", "codedojo.dev"
     if "://" not in url:
         url = "https://" + url
     parsed = urlparse(url)
@@ -157,9 +172,9 @@ async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
 
             # Our demo site: only this publisher's pages (the origin hosts two publishers)
             known = {r.path: r for r in (await session.scalars(select(Resource))).all()}
-            if body.publisher_id:
+            if publisher_filter:
                 urls = [u for u in urls if urlparse(u).path not in known
-                        or known[urlparse(u).path].publisher_id == body.publisher_id]
+                        or known[urlparse(u).path].publisher_id == publisher_filter]
             urls = urls[:10]
 
             blocked = []
@@ -215,6 +230,10 @@ async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
             "current_price": res.price if res else None, "current_license": res.license_id if res else None,
         })
     out.sort(key=lambda x: -x["uniqueness"])
+    if display_host:
+        site_name, base = "Code Dojo", f"https://{display_host}"
+        for page in out:
+            page["url"] = base + page["path"]
     return {"site": site_name or parsed.netloc, "base": base, "found_via": method, "pages": out,
             "ms": round((time.perf_counter() - t0) * 1000), "ai_model": f"{llm.provider()} ({llm.model()})" if ai_by_i else None,
             "connectable": any(p["resource_id"] for p in out)}

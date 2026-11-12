@@ -29,7 +29,10 @@ class Settings(BaseSettings):
     demo_mode: bool = True
     demo_agent_api_key: str | None = None
     gateway_url: str = "http://127.0.0.1:8000"
-    edge_proxy_gateway: bool = False   # single-host deploy: serve the gateway's public paths too
+    edge_proxy_gateway: bool = False
+    # Sandbox buyer shown to visitors in test mode so anyone can try PayPal Checkout (sandbox money only)
+    paypal_test_buyer_email: str | None = None
+    paypal_test_buyer_password: str | None = None   # single-host deploy: serve the gateway's public paths too
 
     # LLM (optional: without a key, deterministic fallbacks are used)
     llm_provider: str = "groq"           # "groq" or "gemini"
