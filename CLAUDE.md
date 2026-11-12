@@ -69,3 +69,11 @@ DONE and pushed:
 - Browser-tested (playwright venv in scratchpad): desktop, 400px phone, dark mode; ledger-check 0 rows.
 LEFT FOR THE USER: reset-demo → PayPal top-up on camera → record voice video → YouTube → Devpost.
 Known limits: scan works for any URL but only the demo site can go live; sites that block bots get a clear message.
+
+## Live deployment (Nov 12)
+- Render (free plan, no card): web service srv-dbqmmglbedkc73e4d5cg → https://fairfetch-xm1y.onrender.com
+  (one service: deploy/start.sh; EDGE_PROXY_GATEWAY=true), Postgres dpg-dbqmjj3bc2fs73drca0g-a (FREE: expires ~Dec 12),
+  Key Value red-dbqmjje7bikc73ai5jfg. Redeploy: POST /v1/services/<id>/deploys with RENDER_API_KEY (autoDeploy off).
+- Keep-awake: .github/workflows/keep-awake.yml pings /health every 5 min.
+- Prod agent key = PROD_DEMO_AGENT_API_KEY in .env (never publish it). Postman collection (no key) in workspace "Fairfetch".
+- Test mode shows the PayPal sandbox test buyer (PAYPAL_TEST_BUYER_* env) next to the top-up button.
