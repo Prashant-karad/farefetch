@@ -1,97 +1,97 @@
-# Fairfetch — Devpost submission draft
+# Devpost submission: copy each section into the matching field
 
-## Tagline
+---
+
+## Project name
+Fairfetch
+
+## Elevator pitch (short tagline)
 AI agents pay publishers per read with PayPal, and prove they used the work fairly.
 
-## Try it (2 minutes, no setup)
-- **Live app:** https://fairfetch-xm1y.onrender.com/app (a short tour opens automatically)
-- **Payments are PayPal sandbox.** The app shows a test PayPal login next to "Add $5.00 with PayPal".
-0. Click **Take the tour**: every step has a "Do it for me" button.
-1. **Publisher → Set up** → click **StudyNest** (a real, separate homework website) → AI prices appear → Continue → **Go live** → **Send a test bot** (real HTTP 402).
-2. **Agent owner** → add money with PayPal (test login shown) → ask *"How does photosynthesis work?"* and watch it price, choose, pay StudyNest and answer with credit.
-3. Switch to **Careless agent** and ask again: the license check catches the copying and fixes it.
-4. **Publisher → Overview** → see who paid and why → **Pay me via PayPal** (real sandbox Payouts batch).
-5. **Under the hood:** https://fairfetch-xm1y.onrender.com/live shows every HTTP call of a run, the ledger and signature checks.
+## Video demo link
+https://www.youtube.com/watch?v=REPLACE_WITH_YOUR_VIDEO_ID
 
-## Inspiration
-AI assistants now answer questions by reading blogs, tutorials and guides. The sites hit hardest are exactly the
-"what is OOP / how do SQL JOINs work / what is compound interest" kind: Stack Overflow lost about a third of its
-visitors in a year, Chegg's non-subscriber traffic fell about half, and finance and reference explainers lost about a third. The people who wrote them get no
-visit, no credit and no money, so their only choice is to block bots. HTTP has had a status code for this since
-1997, `402 Payment Required`, but nobody used it. Paying for access is only half the problem: once an agent has
-paid, nothing stops it from pasting your article word for word without credit. We wanted both halves.
+## "Try it out" links
+- Live app: https://fairfetch-xm1y.onrender.com
+- Source code: https://github.com/Prashant-karad/farefetch
+- Demo publisher website (connect it live in the app): https://studynest-94bj.onrender.com
 
-## What it does
-Fairfetch is a gateway that sits in front of any website.
+## Built with (tags)
+paypal-checkout, paypal-payouts, paypal-orders-v2, python, fastapi, postgresql, redis, groq, gpt-oss-120b, jwt, render, ag-grid, postman, javascript, html, css
 
-- **Publishers** paste their website's link (the demo has three real, separately hosted sites: Code Dojo, MoneyWise and StudyNest). Fairfetch reads the sitemap, an AI suggests a price per page based on how
-  original it is, and the publisher picks a license (read, quote or data). From then on, an unpaid AI request gets
-  **HTTP 402** with the price, license terms and a free preview instead of the page.
-- **Agent owners** fund a wallet with **PayPal Checkout** and set spending rules in plain English
-  ("never more than 5 cents per article and $1 a day"). The platform enforces them.
-- **The agent** reads the 402 previews, decides which sources are worth paying for (and says why), pays, receives
-  a signed time-limited pass, and reads through the gateway.
-- **The license guard** checks the agent's answer before it ships: verbatim copying beyond the license, missing
-  citations, expired passes. It fixes problems automatically (AI rewrite, deterministic fallback) and issues a
-  **signed usage receipt** the publisher can verify with a public key.
-- **Publishers are paid with PayPal Payouts**, and see who paid, why, and how their work was used.
+---
 
-## How we built it
-- **Gateway** (FastAPI): returns 402 price lists, verifies ES256 passes with the public key only, reverse-proxies paid
-  reads to each publisher's own, unchanged website, caches lookups in Redis, and publishes a machine-readable price list at
-  `/.well-known/fairfetch.json`.
-- **Platform** (FastAPI, PostgreSQL, Redis): wallets and a **double-entry ledger** (every transaction sums to zero,
-  append-only, wallets can never go negative), idempotent purchases, pass and receipt signing, the license guard,
-  PayPal Checkout top-ups and PayPal Payouts.
-- **Research agent** (Python): the real agent the demo runs, streaming its trace as JSON lines.
-- **Web app**: landing page, publisher and agent-owner views, and an "under the hood" view of every HTTP call,
-  in plain HTML, CSS and JavaScript with no framework.
+## About the project (paste everything below into the main description)
+
+### Try it in 2 minutes
+**Live app:** https://fairfetch-xm1y.onrender.com/app (a short guided tour opens on your first visit and lights up each thing to click).
+Payments run in **PayPal sandbox** (test mode): when you add money, the app shows a test PayPal login right under the button.
+
+1. **Publisher → Set up:** pick **StudyNest** (a real, separately hosted homework website), watch an AI price every page, add a payout email, **Go live**, then **Send a test bot** and see the real `HTTP 402 Payment Required`.
+2. **Agent owner:** add money with **PayPal Checkout**, write a budget rule in plain English, and ask *"How does photosynthesis work?"*. The agent checks every price, buys only what adds something (and says why), pays StudyNest, and answers with credit.
+3. Switch to **Careless agent** and ask again: the license guard catches the copied text and missing credit, fixes the answer and signs a receipt.
+4. **Publisher → Overview:** see who paid and why, then **Pay me via PayPal** (a real sandbox Payouts batch).
+5. **Under the hood** (`/live`): every HTTP call of an agent run, the double-entry ledger and signature checks.
+
+### Inspiration
+Think about how you look things up today: you ask an AI, it reads Stack Overflow, Chegg or a blog, and hands you the answer. In one year Stack Overflow lost about a third of its visitors and Chegg's non-subscriber traffic fell about half. The people who wrote those answers get no visit, no credit and no money, so their only option is to block bots.
+
+HTTP has had a status code for this since 1997, `402 Payment Required`, but nobody used it. And paying for access is only half the problem: once an agent has paid, nothing stops it from pasting the article word for word without credit. We wanted both halves.
+
+### What it does
+Fairfetch is a gateway in front of any website.
+- **Publishers** paste their site's address. Fairfetch reads the sitemap, an AI prices every page by how original it is, and the publisher picks a license per page (read, quote or data) and which pages to protect. From then on, an unpaid AI request gets **HTTP 402** with the price, the license terms and a free preview instead of the page.
+- **Agent owners** fund a wallet with **PayPal Checkout** and set a budget in plain English ("never more than 5 cents per article and $1 a day"), which the platform enforces.
+- **The agent** reads the 402 previews, decides which sources are worth paying for and explains why, pays, receives a signed time-limited pass, and reads the real page through the gateway.
+- **The license guard** checks the answer before it ships: copied word runs beyond the license, missing citations, expired passes. It fixes problems automatically and issues a **signed usage receipt** anyone can verify with a public key.
+- **Publishers are paid with PayPal Payouts**, and see every paid read, 90% of the price, and the agent's own reason for buying.
+
+### What makes it different
+Pay-per-crawl tools charge the bot at the door, and that's it. **Fairfetch also proves what the agent did after it paid**: every answer is checked against the publisher's license and comes with a signed receipt. It is built as three separate parts:
+- a **gateway** at the edge that speaks HTTP 402 and only verifies signed passes; it never touches money;
+- a **platform** that holds the wallets, a double-entry ledger and the license guard;
+- the **agent**, which reasons with AI about what is worth buying.
 
 ### How we use PayPal
-- **Orders v2 (Checkout)** to fund agent wallets: create order → buyer approves → server captures and **verifies
-  status, amount, currency and our reference** before crediting the ledger exactly once. `PayPal-Request-Id`
-  makes create and capture idempotent, and we never call PayPal inside an open database transaction.
-- **Payouts** to pay publishers in one batch, in whole cents; balances under a cent stay owed for the next batch.
-  The ledger reserves funds first, and a failed payout posts a reversal.
+A single read costs a few cents, far too small for a card payment each time. So:
+- **PayPal Checkout (Orders v2)** funds the agent's wallet once: create order → buyer approves → our server captures and **verifies status, amount, currency and our reference** before crediting the ledger exactly once. `PayPal-Request-Id` makes create and capture idempotent, and we never call PayPal inside an open database transaction.
+- Each read is then settled instantly on our double-entry ledger (90% to the publisher, 10% fee).
+- **PayPal Payouts** sends publishers their earnings in one batch, in whole cents; balances under a cent wait for the next batch. Funds are reserved first, and a failed payout posts a reversal.
 
-### How we use AI (Groq, `openai/gpt-oss-120b`)
-1. The agent decides what to buy, with a one-sentence reason per source, within budget.
-2. The agent writes a cited answer within each license's quote limit.
-3. The license guard rewrites violating passages, then re-checks them.
-4. Plain-English spending rules become structured limits.
-5. Publisher setup: one AI call rates every scanned page's originality and suggests a price with a reason.
+### How we use AI
+The agent and the platform use **Groq (`openai/gpt-oss-120b`)** for: deciding what to buy and why, writing a cited answer within each license, rewriting copied passages in the license guard, turning plain-English budget rules into limits, and pricing every page of a newly connected website by originality. **Every AI step has a deterministic fallback**, so money and licensing never depend on a model being up.
 
-Every AI step has a deterministic fallback, so the money and licensing paths never depend on a model being up.
+### How we built it
+- **Gateway** (FastAPI): 402 price lists, ES256 pass verification with the public key only, reverse proxy to each publisher's own website, Redis cache, a machine-readable price list at `/.well-known/fairfetch.json`.
+- **Platform** (FastAPI, PostgreSQL, Redis): wallets and a **double-entry ledger** (every transaction sums to zero, append-only, wallets can never go negative), idempotent purchases, pass and receipt signing, the license guard, PayPal Checkout and Payouts.
+- **Research agent** (Python): the real agent the app runs, streaming its trace as JSON lines to the browser.
+- **Three publisher websites** (static sites), the web app, the landing page and the under-the-hood view, in plain HTML, CSS and JavaScript.
 
 ### Sponsor tools used
-- **Render:** the live deployment (one web service + Render PostgreSQL + Render Key Value) and the three publisher websites (Render static sites).
-- **AG Grid:** the publisher's content table (sort, filter, edit a price in place; the gateway uses it immediately) and the classic dashboard.
-- **Postman:** a "be the agent yourself" collection that runs the protocol step by step with tests: 402 → purchase → read → license check → receipt verification ([`docs/postman`](https://github.com/Prashant-karad/farefetch/tree/main/docs/postman)).
+- **Render:** the live app (one web service + Render PostgreSQL + Render Key Value) and the three publisher websites (static sites).
+- **AG Grid:** the publisher's content table: sort, filter, and edit a price in place; the gateway charges the new price immediately.
+- **Postman:** a "be the agent yourself" collection that walks the protocol with tests: 402 → purchase → read → license check → receipt verification (`docs/postman` in the repo).
 
-### AI tools used to build it
-Claude Code (Anthropic) for pair-programming, code review, UI implementation and testing with a headless browser.
+### Challenges
+- Making money movement safe: idempotency keys derived from task and resource, so a crashed agent can retry without paying twice; conditional updates so a wallet can't go negative under concurrency.
+- Deciding what "fair use" means in code: the longest copied run of words against each license's limit, citations and pass expiry, always measured against the publisher's original page and never the agent's copy.
+- Explaining a two-sided protocol: separate publisher and agent-owner views with their own identity, plus a guided tour where visitors click every real step themselves.
 
-## Challenges
-- Making money movement safe: idempotency keys derived from task and resource, so a crashed agent can retry
-  without paying twice; conditional updates so a wallet can't go negative under concurrency.
-- Deciding what "fair use" means in code: longest copied run of words against each license's limit, citations,
-  and pass expiry, measured against the publisher's original text and never the agent's copy.
-- Explaining a protocol to people: we built three views (publisher, agent owner, under the hood) so each side sees
-  only what matters to them.
+### Accomplishments we're proud of
+- A full loop on real infrastructure: PayPal in → HTTP 402 → AI decision → signed pass → gateway read from a real website → license guard → signed receipt → PayPal out.
+- Connecting a brand-new website live, from its URL, in under a minute.
+- A ledger that always balances, and receipts a publisher can verify without trusting us.
 
-## Accomplishments
-- A full loop: PayPal in, 402, AI decision, signed pass, gateway read, license guard, signed receipt, PayPal out.
-- A ledger that always balances (`make ledger-check` returns 0 rows after every run).
-- Receipts a publisher can verify without trusting us.
+### What we learned
+HTTP 402 suits AI agents well: an agent can read a price list and reason about it. The harder and more valuable part is what happens after payment.
 
-## What we learned
-402 is a good fit for agents because an agent can read a price list and reason about it. The harder and more
-valuable part is what happens after payment.
+### What's next
+Cryptographic bot identity (Web Bot Auth), x402 and RSL compatibility, an MCP server so any agent can use Fairfetch, DNS onboarding for any domain, publisher and owner logins, and refunds when content fails the agent.
 
-## What's next
-Cryptographic bot identity (Web Bot Auth), x402 and RSL compatibility, an MCP server so any agent can use
-Fairfetch, real DNS onboarding for any domain, owner and publisher login, and refunds when content fails the agent.
+---
 
-## Links
-- Live: https://fairfetch-xm1y.onrender.com
-- Code and run instructions: https://github.com/Prashant-karad/farefetch
+## Hackathon questions (if the form asks)
+- **PayPal products used:** PayPal Checkout (Orders v2: create, approve, capture) and PayPal Payouts, both in the PayPal sandbox.
+- **AI model / platform used:** Groq, model `openai/gpt-oss-120b` (agent decisions, cited answers, license-guard rewrites, plain-English budget rules, page pricing).
+- **AI tools used to build it:** Claude Code (Anthropic) for pair-programming, testing and the demo video; Sarvam AI (Bulbul v3) for the video narration.
+- **Test login for judges:** shown inside the app next to "Add money with PayPal" (sandbox money only).
