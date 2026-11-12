@@ -22,17 +22,29 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .role a[aria-current="true"] { background: var(--ink); color: var(--paper); }
 .top .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 #tour { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
-#tour .tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(10, 12, 15, .55); transition: all .35s cubic-bezier(.2,.9,.2,1);
-  outline: 2px solid var(--ticket); outline-offset: 2px; }
-#tour .tour-card { position: fixed; pointer-events: auto; background: var(--sheet); color: var(--ink); border-radius: 16px; padding: 16px 18px;
-  display: grid; gap: 8px; box-shadow: 0 24px 60px -18px rgba(0,0,0,.55); transition: top .35s cubic-bezier(.2,.9,.2,1), left .35s cubic-bezier(.2,.9,.2,1);
-  animation: rowin .35s ease-out both; }
-#tour .tour-card.center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)); }
-#tour .tour-t { font: 800 21px/1.15 var(--display); font-variation-settings: "wdth" 110; }
-#tour .tour-card p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
-.tour-bar { height: 4px; background: var(--sheet-2); border-radius: 2px; overflow: hidden; }
+#tour .tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(10, 12, 15, .5); transition: all .35s cubic-bezier(.2,.9,.2,1); }
+#tour .tour-hole::after { content: ""; position: absolute; inset: -3px; border-radius: 16px; border: 3px solid var(--ticket); animation: ring 1.6s ease-out infinite; }
+@keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(255, 216, 74, .7); } 70% { box-shadow: 0 0 0 14px rgba(255, 216, 74, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 216, 74, 0); } }
+#tour .tour-card { position: fixed; pointer-events: auto; background: #14161b; color: #f3f4ef; border-radius: 16px; padding: 18px 18px 16px;
+  display: grid; gap: 9px; box-shadow: 0 28px 70px -18px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06); border-top: 4px solid var(--ticket);
+  transition: top .35s cubic-bezier(.2,.9,.2,1), left .35s cubic-bezier(.2,.9,.2,1); animation: tour-pop .45s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes tour-pop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+#tour .tour-card.center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(470px, calc(100vw - 32px)); animation: none; }
+#tour .tour-card .eyebrow { color: var(--ticket); }
+#tour .tour-t { font: 800 22px/1.15 var(--display); font-variation-settings: "wdth" 110; }
+#tour .tour-card p { margin: 0; color: #c9ccd3; font-size: 14.5px; }
+#tour .tour-do { display: flex; gap: 8px; align-items: center; background: rgba(255, 216, 74, .12); color: var(--ticket); border-radius: 10px;
+  padding: 8px 10px; font-weight: 600; font-size: 14px; }
+#tour .tour-do.done { background: rgba(63, 207, 142, .15); color: #3fcf8e; }
+#tour .tour-do .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; animation: blinkdot 1s ease-in-out infinite; flex: none; }
+#tour .tour-do.done .dot { animation: none; }
+@keyframes blinkdot { 50% { opacity: .25; } }
+.tour-bar { height: 4px; background: rgba(255,255,255,.12); border-radius: 2px; overflow: hidden; }
 .tour-bar i { display: block; height: 100%; background: var(--ticket); transition: width .4s; }
-.tour-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.tour-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; align-items: center; }
+.tour-btns .linkish { color: #9ea3ad; margin-right: auto; }
+.tour-btns .btn-ghost { color: #f3f4ef; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.25); }
+.tour-btns .btn-ticket { padding: 8px 14px; }
 @media (max-width: 640px) { #tour .tour-card:not(.center) { left: 16px !important; right: 16px; width: auto !important; top: auto !important; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); } }
 .main { max-width: 1320px; margin: 0 auto; padding-block: 22px 60px; width: 100%; }
 .hl { animation: hl 1.6s ease-out 2; }
@@ -100,6 +112,18 @@ input.field:focus, textarea.field:focus, select.field:focus { border-color: var(
 .answer .foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .rcpt-btn { border: 0; cursor: pointer; background: var(--green-soft); color: var(--green); font-weight: 700; border-radius: 999px; padding: 6px 12px; font-size: 13px; }
 .rcpt-btn.red { background: var(--red-soft); color: var(--red); }
+
+/* site picker */
+.site-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.site-pick { position: relative; }
+.site-btn { width: 100%; text-align: left; display: grid; gap: 3px; background: var(--sheet-2); border: 1.5px solid var(--line); border-radius: 12px;
+  padding: 11px 12px; cursor: pointer; color: var(--ink); }
+.site-btn:hover { border-color: var(--blue); }
+.site-btn b { font: 700 16px var(--display); }
+.site-btn span { font-size: 13px; color: var(--muted); }
+.site-btn em { justify-self: start; font-style: normal; font-size: 11.5px; margin-top: 3px; }
+.site-open { position: absolute; top: 10px; right: 12px; font-size: 12.5px; color: var(--muted); }
+.pg .keep { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 4px; cursor: pointer; }
 
 /* top-up */
 .amounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr); gap: 6px; }
@@ -342,9 +366,8 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
               <input class="field" id="site-url" aria-label="Website address" placeholder="https://yourblog.com">
               <button class="btn btn-primary" id="scan-btn">Scan my site</button>
             </form>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center" id="try-sites"><span class="sub">Or try it with</span>
-              <button class="chip blue" id="use-demo" style="cursor:pointer">StudyNest</button>
-              <span class="sub">a homework-help site · <a id="open-demo" href="#" target="_blank" rel="noopener">open it ↗</a></span></div>
+            <div style="display:grid;gap:8px" id="try-sites"><span class="sub">Or pick one of these websites:</span>
+              <div class="site-picks" id="site-picks"></div></div>
             <div class="console" id="scan-log" hidden></div>
           </div>
           <div class="sheet card" id="w-prices" hidden>
@@ -660,6 +683,7 @@ async function ask() {
         break;
       case "closed":
         running = false; $("#send").disabled = false;
+        if (sloppy) sloppyRunsDone++; else runsDone++;
         if (!guardRes) { run.querySelector(".spin")?.remove(); if (sum.textContent.endsWith("…")) sum.textContent = "Stopped"; }
         loadOwner();
         break;
@@ -753,6 +777,7 @@ $("#payout-btn").onclick = async () => {
   try {
     const r = await api("/v1/demo/settle", { method: "POST" });
     const mine = (r.payouts || []).find(p => p.publisher === pubData.name);
+    payoutsDone++;
     if (mine) { setTrack(3); toast(`$${mine.amount_usd} sent to your PayPal`, `PayPal Payouts batch ${r.paypal_batch_id}`, "$", "var(--blue)"); }
     else toast("Nothing to pay yet", "Payouts are sent in whole cents; smaller balances wait for the next batch.", "·", "var(--muted)");
   } catch (e) { toast("PayPal payout failed", e.message, "!", "var(--red)"); }
@@ -764,7 +789,15 @@ $("#payout-btn").onclick = async () => {
 let scanned = null, licenses = [];
 function rail(n) { $$("#rail .r").forEach((r, i) => { r.classList.toggle("on", i === n); r.classList.toggle("done", i < n); }); }
 function demoSite() { return (CONFIG.sites || []).find(x => x.slug === "studynest") || { url: "" }; }
-$("#use-demo").onclick = () => { $("#site-url").value = demoSite().url; $("#scan-form").requestSubmit(); };
+const SITE_BLURB = { studynest: "Homework help", codedojo: "Programming concepts", moneywise: "Money basics" };
+function renderSitePicks() {
+  const sites = [...(CONFIG.sites || [])].sort((a, b) => a.connected - b.connected);
+  $("#site-picks").innerHTML = sites.map(x => `<div class="site-pick">
+      <button type="button" class="site-btn" data-url="${esc(x.url)}"><b>${esc(x.name)}</b><span>${esc(SITE_BLURB[x.slug] || "")}</span>
+        <em class="chip ${x.connected ? "green" : "ticket"}">${x.connected ? "on Fairfetch" : "not protected yet"}</em></button>
+      <a class="site-open" href="${esc(x.url)}" target="_blank" rel="noopener" title="Open ${esc(x.name)}">open ↗</a></div>`).join("");
+  $$(".site-btn").forEach(b => b.onclick = () => { $("#site-url").value = b.dataset.url; $("#scan-form").requestSubmit(); });
+}
 $("#scan-form").onsubmit = async e => {
   e.preventDefault();
   const url = $("#site-url").value.trim(); if (!url) return;
@@ -788,7 +821,8 @@ function renderPages() {
   $("#w-prices").hidden = false;
   $("#priced-by").textContent = scanned.ai_model ? `prices suggested by ${scanned.ai_model}` : "prices suggested by the fallback heuristic";
   $("#pages").innerHTML = scanned.pages.map((p, i) => `<div class="pg" style="animation-delay:${i * 70}ms">
-      <div class="tt-wrap"><div class="tt">${esc(p.title)}</div><div class="why">${esc(p.reason)} · ${p.words} words</div></div>
+      <div class="tt-wrap"><div class="tt">${esc(p.title)}</div><div class="why">${esc(p.reason)} · ${p.words} words</div>
+        <label class="keep"><input type="checkbox" class="protect" data-i="${i}" checked> Protect this page</label></div>
       <label class="price-in" style="animation-delay:${200 + i * 70}ms">$<input data-i="${i}" class="pin" inputmode="decimal" value="${(p.suggested_price / 10000).toFixed(4)}" aria-label="Price for ${esc(p.title)}"></label>
       <select class="field lin" data-i="${i}" aria-label="License for ${esc(p.title)}" style="padding:8px">${licenses.map(l =>
         `<option value="${l.id}" ${(p.kind === "api" ? "lic_data_1h" : (p.current_license || "lic_read_24h")) === l.id ? "selected" : ""}>${esc(FF.LICENSES[l.id]?.opt || l.id)}</option>`).join("")}</select>
@@ -820,7 +854,9 @@ $("#go-live").onclick = async () => {
   const btn = $("#go-live"), msg = $("#go-msg");
   if (policy !== "charge") { msg.textContent = policy === "free" ? "Free access means no gateway is needed. Choose “Pay to read” to charge." : "Blocking is a robots.txt rule. Choose “Pay to read” to earn instead."; return; }
   const items = scanned.pages.map((p, i) => ({ resource_id: p.resource_id, url: p.url, title: p.title, excerpt: p.excerpt, words: p.words, kind: p.kind,
-    price: Math.round(parseFloat($(`.pin[data-i="${i}"]`).value) * 10000), license_id: $(`.lin[data-i="${i}"]`).value }));
+    price: Math.round(parseFloat($(`.pin[data-i="${i}"]`).value) * 10000), license_id: $(`.lin[data-i="${i}"]`).value,
+    protect: $(`.protect[data-i="${i}"]`).checked })).filter(x => x.protect);
+  if (!items.length) { msg.textContent = "Tick at least one page to protect."; return; }
   if (items.some(x => !(x.price >= 10))) { msg.textContent = "Every price must be at least $0.0010."; return; }
   const email = $("#payout-email").value.trim();
   if (!scanned.publisher_id && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "Enter the PayPal email where your earnings should go."; $("#payout-email").focus(); return; }
@@ -855,87 +891,108 @@ $("#test-btn").onclick = async () => {
 };
 
 /* ================= spotlight tour ================= */
+// Each action step lights up the real control. The visitor clicks it; when the action has finished the tour moves on.
+let runsDone = 0, sloppyRunsDone = 0, payoutsDone = 0;
 const TOUR = [
   { center: true, k: "Fairfetch in 2 minutes", t: "Be a publisher, then the owner of an AI agent.",
-    d: "Everything here is real: three real websites, PayPal sandbox payments, a real AI agent. Use “Do it for me” on any step, or click things yourself." },
-  { go: "#publisher-setup", el: "#w-site", k: "Publisher · 1", t: "Connect a real website",
-    d: "StudyNest is a homework-help site that AI tools answer from for free. Scan it: Fairfetch reads its sitemap and an AI prices every page.",
-    act: () => $("#use-demo").click(), ready: () => $$(".pg").length > 0 },
-  { go: "#publisher-setup", el: "#w-prices", k: "Publisher · 2", t: "Prices set by originality",
-    d: "Each page got a price and a reason. Pick a license per page: read, quote or data.", act: () => $("#to-connect").click(), ready: () => !$("#w-connect").hidden },
-  { go: "#publisher-setup", el: "#w-connect", k: "Publisher · 3", t: "Switch it on",
-    d: "Say where earnings go, then go live. From now on AI agents get a price instead of the page.", act: () => $("#go-live").click(), ready: () => !$("#w-test").hidden },
-  { go: "#publisher-setup", el: "#w-test", k: "Publisher · 4", t: "Knock like an AI bot",
-    d: "A real unpaid request goes through the gateway. It answers HTTP 402 Payment Required, with the price.", act: () => $("#test-btn").click(), ready: () => /HTTP \d{3}/.test($("#test-out").textContent) },
-  { go: "#agent", el: "#wallet-card", k: "Agent owner · 1", t: "Fund the agent with PayPal",
-    d: "Pick an amount and approve it in PayPal. The test login appears right below the button. Then write a spending rule in plain English." },
-  { go: "#agent", el: ".suggest", alt: "#composer", k: "Agent owner · 2", t: "Ask a question",
-    d: "The agent finds sources, reads their prices, buys only what adds something, and answers with credit.",
-    act: () => { $("#q").value = "How does photosynthesis work?"; ask(); }, ready: () => !running, linger: 5000 },
-  { go: "#publisher", el: "#earn-card", k: "Publisher · 5", t: "The money arrives",
-    d: "Back as the publisher: earnings, who paid, and the agent's own reason for buying.",
-    act: () => { if (scanned?.publisher_id) { pubId = scanned.publisher_id; $("#pub-pick").value = pubId; loadPublisher(); } } },
-  { go: "#agent", el: ".chat-h .seg", k: "Agent owner · 3", t: "Catch a careless agent",
+    d: "Three real websites, real PayPal sandbox payments and a real AI agent. Each step shows you what to click." },
+  { go: "#publisher-setup", el: "#w-site", k: "Publisher", t: "Pick a website to protect",
+    d: "StudyNest is a homework-help site that AI tools read for free today. Pick it (or paste any site) and Fairfetch scans its pages.",
+    todo: "Click StudyNest, then wait for the scan", ready: () => $$(".pg").length > 0 },
+  { go: "#publisher-setup", el: "#to-connect", alt: "#w-prices", k: "Publisher", t: "AI priced every page",
+    d: "Each page got a price and a reason, based on how original it is. Untick pages you want to keep free.",
+    todo: "Click Continue", ready: () => !$("#w-connect").hidden },
+  { go: "#publisher-setup", el: "#go-live", alt: "#w-connect", k: "Publisher", t: "Switch it on",
+    d: "Check the PayPal email where your earnings go. From now on AI agents get a price instead of the page.",
+    todo: "Click Go live", ready: () => !$("#w-test").hidden },
+  { go: "#publisher-setup", el: "#test-btn", alt: "#w-test", k: "Publisher", t: "Knock like an AI bot",
+    d: "A real unpaid request goes through the gateway. Watch what it gets back.",
+    todo: "Click Send a test bot", ready: () => /HTTP \d{3}/.test($("#test-out").textContent) },
+  { go: "#agent", el: "#wallet-card", k: "Agent owner", t: "Fund the agent with PayPal",
+    d: "Pick an amount and approve it in PayPal with the test login shown under the button. Already has money? Go on.",
+    todo: "Add money, or click Next", next: true },
+  { go: "#agent", el: ".suggest", alt: "#composer", k: "Agent owner", t: "Ask your agent a question",
+    d: "It finds sources, reads their prices, buys only what adds something, and answers with credit.",
+    todo: "Click “How does photosynthesis work?”", start: () => runsDone, ready: b => runsDone > b, linger: 4500 },
+  { el: '.role a[data-role="publisher"]', k: "Publisher", t: "See the money arrive",
+    d: "Switch back to the publisher: earnings, who paid, and the agent's own reason for buying.",
+    todo: "Click Publisher", ready: () => role === "publisher", linger: 3500 },
+  { go: "#agent", el: ".chat-h .seg", k: "Agent owner", t: "Catch a careless agent",
     d: "This agent pastes text and forgets credit. Fairfetch catches it, fixes the answer and signs a receipt.",
-    act: () => { $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === "sloppy")); $("#q").value = "What is object-oriented programming?"; ask(); }, ready: () => !running, linger: 5000 },
-  { go: "#publisher", el: "#payout-btn", k: "Publisher · 6", t: "Get paid with PayPal",
-    d: "Earnings go out with PayPal Payouts, in whole cents, in one batch.", act: () => $("#payout-btn").click(), ready: () => !$("#payout-btn").disabled, linger: 2500 },
+    todo: "Click Careless agent, then ask a question", start: () => sloppyRunsDone, ready: b => sloppyRunsDone > b, linger: 4500 },
+  { go: "#publisher", el: "#payout-btn", k: "Publisher", t: "Get paid with PayPal",
+    d: "Earnings go out with PayPal Payouts, in whole cents, in one batch.",
+    todo: "Click Pay me via PayPal", start: () => payoutsDone, ready: b => payoutsDone > b, linger: 2500 },
   { center: true, k: "Tour complete", t: "That was the whole loop.", end: true,
-    d: "You connected a website, an agent paid to read it with PayPal money, a careless answer was caught and fixed with a signed receipt, and the publisher was paid with PayPal Payouts." },
+    d: "You protected a website, an agent paid to read it with PayPal money, a careless answer was caught and fixed with a signed receipt, and the publisher was paid with PayPal Payouts." },
 ];
-let tourIdx = -1;
+let tourIdx = -1, tourWatch = null;
+function tourTarget(st) {
+  if (st.center) return null;
+  const el = $(st.el);
+  if (el && el.offsetParent !== null && !el.closest("[hidden]")) return el;
+  const alt = st.alt && $(st.alt);
+  return alt && alt.offsetParent !== null ? alt : null;
+}
 function tourPlace() {
   const st = TOUR[tourIdx]; if (!st) return;
-  const hole = $("#tour .tour-hole"), card = $("#tour .tour-card");
-  const el = st.center ? null : ($(st.el) && !$(st.el).closest("[hidden]") ? $(st.el) : (st.alt ? $(st.alt) : null));
-  const visible = el && el.offsetParent !== null;
-  if (!visible) { hole.style.cssText = "opacity:0"; card.classList.add("center"); card.style.cssText = ""; return; }
+  const hole = $("#tour .tour-hole"), card = $("#tour .tour-card"), el = tourTarget(st);
+  if (!el) { hole.style.cssText = "opacity:0"; card.classList.add("center"); card.style.cssText = ""; return; }
   const r = el.getBoundingClientRect(), pad = 8;
   hole.style.cssText = `opacity:1;top:${r.top - pad}px;left:${r.left - pad}px;width:${r.width + pad * 2}px;height:${Math.min(r.height + pad * 2, innerHeight)}px`;
   card.classList.remove("center");
-  const cw = Math.min(380, innerWidth - 32), below = r.bottom + 16 + 230 < innerHeight;
-  const top = below ? r.bottom + 16 : Math.max(16, r.top - 16 - card.offsetHeight);
+  const cw = Math.min(390, innerWidth - 32), h = card.offsetHeight || 240;
+  const below = r.bottom + 18 + h < innerHeight, above = r.top - 18 - h > 0;
+  const top = below ? r.bottom + 18 : above ? r.top - 18 - h : Math.max(16, innerHeight - h - 16);
   const left = Math.min(Math.max(16, r.left), innerWidth - cw - 16);
   card.style.cssText = `width:${cw}px;top:${top}px;left:${left}px`;
 }
 function tourShow(i) {
+  clearInterval(tourWatch);
   tourIdx = i; const st = TOUR[i]; if (!st) return tourEnd();
   $("#tour").hidden = false;
   if (st.go && location.hash !== st.go) location.hash = st.go;
+  const base = st.start ? st.start() : null;
   const card = $("#tour .tour-card");
-  card.innerHTML = `<span class="eyebrow">${esc(st.k)} · ${i}/${TOUR.length - 1}</span><b class="tour-t">${esc(st.t)}</b><p>${esc(st.d)}</p>
-    <div class="tour-bar"><i style="width:${(i / (TOUR.length - 1)) * 100}%"></i></div>
-    <div class="tour-btns">${st.end ? `<button class="btn btn-primary btn-sm" data-t="close">Explore on your own</button>`
-      : `${i > 0 ? `<button class="btn btn-ghost btn-sm" data-t="back">Back</button>` : `<button class="btn btn-ghost btn-sm" data-t="close">Skip</button>`}
-      ${st.act ? `<button class="btn btn-ink btn-sm" data-t="do">Do it for me</button>` : ""}
-      <button class="btn btn-primary btn-sm" data-t="next">${i === 0 ? "Start" : "Next"} →</button>`}</div>`;
+  const last = TOUR.length - 1;
+  card.innerHTML = `<span class="eyebrow">${esc(st.k)}${i && !st.end ? ` · step ${i} of ${last - 1}` : ""}</span><b class="tour-t">${esc(st.t)}</b><p>${esc(st.d)}</p>
+    ${st.todo ? `<div class="tour-do"><span class="dot"></span><span class="tour-do-t">${esc(st.todo)}</span></div>` : ""}
+    <div class="tour-bar"><i style="width:${(i / last) * 100}%"></i></div>
+    <div class="tour-btns">${st.end ? `<button class="btn btn-ticket btn-sm" data-t="close">Explore on your own</button>`
+      : i === 0 ? `<button class="linkish" data-t="close">Not now</button><button class="btn btn-ticket btn-sm" data-t="next">Start the tour →</button>`
+      : `<button class="linkish" data-t="close">End tour</button><button class="btn btn-ghost btn-sm" data-t="back">Back</button>
+         <button class="btn ${st.next ? "btn-ticket" : "btn-ghost"} btn-sm" data-t="next">${st.next ? "Next →" : "Skip step"}</button>`}</div>`;
+  card.style.animation = "none"; void card.offsetWidth; card.style.animation = "";
   card.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
     const t = b.dataset.t;
-    if (t === "next") tourShow(i + 1); else if (t === "back") tourShow(i - 1); else if (t === "close") tourEnd();
-    else if (t === "do") {
-      st.act(); b.disabled = true; b.textContent = "Working…";
-      // move on only when the real action has finished, then give people a moment to see the result
-      const t0 = Date.now();
-      const wait = setInterval(() => {
-        if (tourIdx !== i) return clearInterval(wait);
-        const done = st.ready ? st.ready() : true;
-        if ((done && Date.now() - t0 > 900) || Date.now() - t0 > 180000) {
-          clearInterval(wait); b.textContent = "Done ✓";
-          setTimeout(() => tourIdx === i && tourShow(i + 1), st.linger || 1400);
-        }
-      }, 300);
-    }
+    if (t === "next") tourShow(i + 1); else if (t === "back") tourShow(i - 1); else tourEnd();
   });
-  const target = st.center ? null : $(st.el);
-  if (target && target.offsetParent !== null) target.scrollIntoView({ block: "center", behavior: REDUCED ? "auto" : "smooth" });
+  const target = tourTarget(st);
+  if (target) target.scrollIntoView({ block: "center", behavior: REDUCED ? "auto" : "smooth" });
   setTimeout(tourPlace, 30); setTimeout(tourPlace, 450);
+  if (st.ready) {
+    tourWatch = setInterval(() => {
+      if (tourIdx !== i) return clearInterval(tourWatch);
+      if (st.ready(base)) {
+        clearInterval(tourWatch);
+        const box = card.querySelector(".tour-do");
+        if (box) { box.classList.add("done"); box.querySelector(".tour-do-t").textContent = "Done ✓"; }
+        setTimeout(() => tourIdx === i && tourShow(i + 1), st.linger || 1500);
+      }
+    }, 300);
+  }
 }
-function tourEnd() { $("#tour").hidden = true; tourIdx = -1; }
+function tourEnd() { clearInterval(tourWatch); $("#tour").hidden = true; tourIdx = -1; }
 addEventListener("resize", () => tourIdx >= 0 && tourPlace());
 addEventListener("scroll", () => tourIdx >= 0 && tourPlace(), { passive: true });
-setInterval(() => tourIdx >= 0 && tourPlace(), 700);  // follow elements that appear or move
+setInterval(() => tourIdx >= 0 && tourPlace(), 600);  // follow controls that appear or move
 $("#guide-toggle").onclick = () => tourShow(0);
-try { if (!localStorage.getItem("ff_tour_seen")) { localStorage.setItem("ff_tour_seen", "1"); setTimeout(() => tourShow(0), 900); } } catch {}
+(() => {
+  const asked = new URLSearchParams(location.search).has("tour");
+  let seen = false; try { seen = !!localStorage.getItem("ff_tour_v2"); localStorage.setItem("ff_tour_v2", "1"); } catch {}
+  if (asked || !seen) setTimeout(() => tourShow(asked ? 1 : 0), 900);
+  if (asked) history.replaceState(null, "", location.pathname + location.hash);
+})();
 
 /* deployment config: test mode, PayPal sandbox test buyer, publisher websites */
 let CONFIG = { test_mode: false, test_buyer: null, sites: [] };
@@ -943,9 +1000,8 @@ async function loadConfig() {
   try {
     CONFIG = await api("/v1/demo/config");
     $("#testmode").hidden = !CONFIG.test_mode;
-    const d = demoSite();
-    $("#open-demo").href = d.url || "#";
-    $("#try-sites").hidden = !d.url;
+    $("#try-sites").hidden = !(CONFIG.sites || []).length;
+    renderSitePicks();
   } catch {}
 }
 function buyerBox() {
