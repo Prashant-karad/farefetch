@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models import AccessGrant, Agent, License, Resource, UsageReceipt
-from app.services import llm
+from app.services import llm, page_text
 from app.services.license_core import Item, all_violations, check, deterministic_fix
 from app.services.passes import sign_receipt
 
@@ -21,8 +21,14 @@ class UsageError(Exception):
         self.status, self.code, self.message = status, code, message
 
 
-async def _source_text(path: str) -> str:
+async def _source_text(resource) -> str:
     """Fetch the ORIGINAL content from the publisher (never trust the agent's copy)."""
+    if resource.origin_url:  # the publisher's own website
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            resp = await client.get(resource.origin_url)
+        resp.raise_for_status()
+        return page_text.extract(resp.text, resp.headers.get("content-type", ""))[1]
+    path = resource.path
     async with httpx.AsyncClient(base_url=settings.origin_url, timeout=10.0) as client:
         resp = await client.get(path)
     resp.raise_for_status()
@@ -63,7 +69,7 @@ async def check_usage(session: AsyncSession, *, agent: Agent, answer: str, grant
     items = []
     for grant, resource, lic in rows:
         try:
-            text = await _source_text(resource.path)
+            text = await _source_text(resource)
         except httpx.HTTPError:
             raise UsageError(502, "origin_unreachable", f"Could not load source text for {resource.path}")
         items.append(Item(

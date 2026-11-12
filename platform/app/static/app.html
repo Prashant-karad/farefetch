@@ -21,15 +21,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .role a { text-decoration: none; padding: 7px 14px; border-radius: 999px; font-weight: 600; font-size: 14px; color: var(--muted); }
 .role a[aria-current="true"] { background: var(--ink); color: var(--paper); }
 .top .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.guide { border-bottom: 1px solid var(--line); background: var(--sheet-2); }
-.guide .in { display: flex; gap: 8px; align-items: center; padding-block: 8px; overflow-x: auto; }
-.guide .g { flex: none; display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--sheet);
-  border-radius: 999px; padding: 5px 11px 5px 5px; font-size: 13px; cursor: pointer; color: var(--ink-2); }
-.guide .g i { font: 600 11px var(--mono); font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--sheet-2); }
-.guide .g.on { border-color: var(--blue); color: var(--ink); }
-.guide .g.on i { background: var(--blue); color: var(--blue-ink); }
-.guide .g.done i { background: var(--green); color: #fff; }
-.guide .cap { flex: none; font-size: 13px; color: var(--muted); padding-left: 6px; }
+#tour { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+#tour .tour-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(10, 12, 15, .55); transition: all .35s cubic-bezier(.2,.9,.2,1);
+  outline: 2px solid var(--ticket); outline-offset: 2px; }
+#tour .tour-card { position: fixed; pointer-events: auto; background: var(--sheet); color: var(--ink); border-radius: 16px; padding: 16px 18px;
+  display: grid; gap: 8px; box-shadow: 0 24px 60px -18px rgba(0,0,0,.55); transition: top .35s cubic-bezier(.2,.9,.2,1), left .35s cubic-bezier(.2,.9,.2,1);
+  animation: rowin .35s ease-out both; }
+#tour .tour-card.center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)); }
+#tour .tour-t { font: 800 21px/1.15 var(--display); font-variation-settings: "wdth" 110; }
+#tour .tour-card p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+.tour-bar { height: 4px; background: var(--sheet-2); border-radius: 2px; overflow: hidden; }
+.tour-bar i { display: block; height: 100%; background: var(--ticket); transition: width .4s; }
+.tour-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 640px) { #tour .tour-card:not(.center) { left: 16px !important; right: 16px; width: auto !important; top: auto !important; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); } }
 .main { max-width: 1320px; margin: 0 auto; padding-block: 22px 60px; width: 100%; }
 .hl { animation: hl 1.6s ease-out 2; }
 @keyframes hl { 0% { box-shadow: 0 0 0 0 var(--blue); } 100% { box-shadow: 0 0 0 10px transparent; } }
@@ -205,13 +209,11 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
     <div class="right">
       <span class="chip ticket" id="testmode" hidden title="Payments use PayPal sandbox: real PayPal flows, no real money">Test mode · PayPal sandbox</span>
       <a class="btn btn-ghost btn-sm" href="/live" target="_blank" rel="noopener">Under the hood ↗</a>
-      <button class="btn btn-ghost btn-sm" id="guide-toggle" aria-expanded="false">Take the tour</button>
+      <button class="btn btn-ghost btn-sm" id="guide-toggle">Take the tour</button>
     </div>
   </div>
 </div>
-<div class="guide gutter" id="guide" hidden>
-  <div class="in main" style="padding-block:8px" id="guide-steps"></div>
-</div>
+<div id="tour" hidden><div class="tour-hole"></div><div class="tour-card" role="dialog" aria-modal="false" aria-live="polite"></div></div>
 
 <main class="main gutter">
   <!-- ================= AGENT OWNER ================= -->
@@ -258,10 +260,10 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
           <div class="hello" id="hello">
             <h3>What should your agent find out?</h3>
             <div class="suggest">
-              <button data-q="How do I make my slow Python code faster, and which approach gives the biggest speed-up?"><b>Make slow Python code faster</b><span>Code Dojo benchmarks + guides</span></button>
-              <button data-q="Why is my SQL query slow and how do indexes help?"><b>Why is my SQL query slow?</b><span>Original timings from Code Dojo</span></button>
-              <button data-q="How do I learn Python fast?"><b>Learn Python fast</b><span>Two near-identical guides: watch it skip one</span></button>
-              <button data-q="What are the developer job trends for Python and JavaScript this week?"><b>Developer job trends</b><span>A paid data API, 1-hour pass</span></button>
+              <button data-q="What is object-oriented programming, and why do developers use it?"><b>What is OOP?</b><span>Code Dojo · two similar guides: watch it skip one</span></button>
+              <button data-q="How do SQL JOINs work, and what is the difference between INNER and LEFT JOIN?"><b>How do SQL JOINs work?</b><span>Code Dojo</span></button>
+              <button data-q="How does compound interest work, and why does starting early matter?"><b>How does compound interest work?</b><span>MoneyWise</span></button>
+              <button data-q="How does photosynthesis work?"><b>How does photosynthesis work?</b><span>StudyNest · after it joins in Set up</span></button>
             </div>
           </div>
         </div>
@@ -340,8 +342,9 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
               <input class="field" id="site-url" aria-label="Website address" placeholder="https://yourblog.com">
               <button class="btn btn-primary" id="scan-btn">Scan my site</button>
             </form>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="sub">Or try it with</span>
-              <button class="chip blue" id="use-demo" style="cursor:pointer">codedojo.dev</button><span class="sub">a programming blog already on Fairfetch</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center" id="try-sites"><span class="sub">Or try it with</span>
+              <button class="chip blue" id="use-demo" style="cursor:pointer">StudyNest</button>
+              <span class="sub">a homework-help site · <a id="open-demo" href="#" target="_blank" rel="noopener">open it ↗</a></span></div>
             <div class="console" id="scan-log" hidden></div>
           </div>
           <div class="sheet card" id="w-prices" hidden>
@@ -362,6 +365,8 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
               <button type="button" data-c="dns" aria-pressed="false">Your domain (DNS)</button>
             </div>
             <div id="conn-body"></div>
+            <label style="display:grid;gap:6px" id="payout-wrap"><span class="sub">Where should we pay you? (PayPal email for payouts)</span>
+              <input class="field" id="payout-email" type="email" autocomplete="email" placeholder="you@example.com"></label>
             <button class="btn btn-primary" id="go-live" style="justify-self:start">Go live</button>
             <div class="sub" id="go-msg"></div>
           </div>
@@ -410,7 +415,6 @@ function route() {
   $$(".tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab === tab));
   ["overview", "setup", "content"].forEach(k => $("#t-" + k).hidden = k !== tab);
   if (role === "agent") loadOwner(); else loadPublisher();
-  renderGuide();
 }
 addEventListener("hashchange", route);
 
@@ -637,7 +641,9 @@ async function ask() {
         if (!ev.final_answer) { addStep("·", "", "No sources were bought, so there is nothing to answer from."); break; }
         const r = guardRes || {};
         run.querySelector(".spin")?.replaceWith(Object.assign(document.createElement("span"), { className: "ok-dot", textContent: "✓" }));
-        sum.textContent = `Paid ${usd(paidTotal)} to ${paidPubs.size || 0} publisher${paidPubs.size === 1 ? "" : "s"} · ${Object.values(decisions).filter(d => d.buy).length} sources · ${r.passed ? "fair use ✓" : "check failed"}`;
+        const nSrc = Object.values(decisions).filter(d => d.buy).length, caught = (r.violations_found || []).length;
+        sum.textContent = `Paid ${usd(paidTotal)} to ${paidPubs.size || 0} publisher${paidPubs.size === 1 ? "" : "s"} · ${nSrc} source${nSrc === 1 ? "" : "s"} · ` +
+          (!r.passed ? "license check failed" : caught ? `copying caught and fixed ✓` : "fair use ✓");
         steps.hidden = true;
         run.insertAdjacentHTML("beforeend", `<div class="answer"><div class="text">${cites(ev.final_answer, offers)}</div>
           <div class="foot"><button class="rcpt-btn ${r.passed ? "" : "red"}" type="button">Receipt · ${r.passed ? ((r.violations_found || []).length ? "fixed · fair use" : "fair use") : "violation"}</button>
@@ -757,7 +763,8 @@ $("#payout-btn").onclick = async () => {
 /* ---------- setup wizard ---------- */
 let scanned = null, licenses = [];
 function rail(n) { $$("#rail .r").forEach((r, i) => { r.classList.toggle("on", i === n); r.classList.toggle("done", i < n); }); }
-$("#use-demo").onclick = () => { $("#site-url").value = "https://codedojo.dev"; $("#scan-form").requestSubmit(); };
+function demoSite() { return (CONFIG.sites || []).find(x => x.slug === "studynest") || { url: "" }; }
+$("#use-demo").onclick = () => { $("#site-url").value = demoSite().url; $("#scan-form").requestSubmit(); };
 $("#scan-form").onsubmit = async e => {
   e.preventDefault();
   const url = $("#site-url").value.trim(); if (!url) return;
@@ -765,12 +772,13 @@ $("#scan-form").onsubmit = async e => {
   const line = (t, cls = "") => { log.insertAdjacentHTML("beforeend", `<div class="${cls}">${t}</div>`); };
   log.innerHTML = "";
   line(`→ GET ${esc(url)}/sitemap.xml`);
-  const req = api("/v1/demo/scan", { method: "POST", body: JSON.stringify({ url, publisher_id: url.includes("127.0.0.1:8002") || url.includes("localhost:8002") ? pubId : null }) });
+  const req = api("/v1/demo/scan", { method: "POST", body: JSON.stringify({ url }) });
   req.catch(() => {});  // handled below; avoids an unhandled rejection while the log animates
   await sleep(500); line("→ reading pages…"); await sleep(500); line("→ asking the AI to price each page by originality…", "k");
   try {
     scanned = await req;
     line(`✓ ${esc(scanned.site)} · found ${scanned.pages.length} pages via ${esc(scanned.found_via)} · ${scanned.ms} ms`, "ok");
+    if (scanned.publisher_id) line(`✓ ${esc(scanned.site)} is already on Fairfetch: you can update its prices`, "ok");
     licenses = licenses.length ? licenses : await api("/v1/demo/licenses");
     renderPages(); rail(1);
   } catch (err) { line(`✗ ${esc(err.message)}`, "k"); }
@@ -792,42 +800,45 @@ $$("#policy button").forEach(b => b.onclick = () => {
   $$(".pin").forEach(inp => { const p = scanned.pages[+inp.dataset.i];
     inp.value = b.dataset.p === "free" ? "0.0000" : b.dataset.p === "block" ? "blocked" : (p.suggested_price / 10000).toFixed(4); inp.disabled = b.dataset.p !== "charge"; });
 });
-$("#to-connect").onclick = () => { $("#w-connect").hidden = false; renderConn("link"); rail(2); $("#w-connect").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth" }); };
+$("#to-connect").onclick = () => {
+  $("#w-connect").hidden = false; renderConn("link"); rail(2);
+  $("#payout-wrap").hidden = !!scanned.publisher_id;
+  if (!$("#payout-email").value && CONFIG.default_payout_email) $("#payout-email").value = CONFIG.default_payout_email;
+  $("#w-connect").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth" });
+};
 function renderConn(c) {
   $$("#conn button").forEach(x => x.setAttribute("aria-pressed", x.dataset.c === c));
   const gw = FF.gatewayBase(), host = (() => { try { return new URL(scanned.base).hostname; } catch { return "yourblog.com"; } })();
   $("#conn-body").innerHTML = c === "link" ? `<p class="sub" style="margin:0">Fastest. AI agents use your Fairfetch address; people keep using your normal site.</p>
-      <div class="code">AI address for ${esc(host)}\n${esc(gw)}/blog/&lt;page&gt;\n\nPrice list for agents\n${esc(gw)}/.well-known/fairfetch.json</div>`
+      <div class="code">AI address for ${esc(host)}\n${esc(gw)}/p/${esc(scanned.slug)}/&lt;page&gt;\n\nPrice list for agents\n${esc(gw)}/.well-known/fairfetch.json</div>`
     : `<p class="sub" style="margin:0">Serve AI traffic on your own domain. Add one record at your DNS provider:</p>
-      <div class="code">Type   Name   Value\nCNAME  ai     ${esc(new URL(gw).hostname)}\n\n→ https://ai.${esc(host)}/blog/&lt;page&gt;</div>`;
+      <div class="code">Type   Name   Value\nCNAME  ai     ${esc(new URL(gw).hostname)}\n\n→ https://ai.${esc(host)}/&lt;page&gt;</div>`;
 }
 $$("#conn button").forEach(b => b.onclick = () => renderConn(b.dataset.c));
 $("#go-live").onclick = async () => {
   const policy = $('#policy [aria-pressed="true"]').dataset.p;
-  const items = scanned.pages.map((p, i) => ({ p, price: Math.round(parseFloat($(`.pin[data-i="${i}"]`).value) * 10000), lic: $(`.lin[data-i="${i}"]`).value }))
-    .filter(x => x.p.resource_id);
   const btn = $("#go-live"), msg = $("#go-msg");
-  if (!items.length) {
-    msg.innerHTML = `<div class="live-banner" style="background:var(--sheet-2);color:var(--ink)"><span class="spin"></span><div><b style="font-size:18px">Waiting for your DNS record</b>
-      <div class="sub">Your ${scanned.pages.length} pages are priced. Add the record above at your DNS provider and ${esc(scanned.site)} switches on automatically.</div>
-      <div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" id="see-live">See a live site: codedojo.dev →</button></div></div></div>`;
-    $("#see-live").onclick = () => { $("#site-url").value = "https://codedojo.dev"; $("#w-connect").hidden = true; $("#w-test").hidden = true; msg.innerHTML = ""; $("#scan-form").requestSubmit(); $("#w-site").scrollIntoView({ behavior: "smooth" }); };
-    return;
-  }
   if (policy !== "charge") { msg.textContent = policy === "free" ? "Free access means no gateway is needed. Choose “Pay to read” to charge." : "Blocking is a robots.txt rule. Choose “Pay to read” to earn instead."; return; }
+  const items = scanned.pages.map((p, i) => ({ resource_id: p.resource_id, url: p.url, title: p.title, excerpt: p.excerpt, words: p.words, kind: p.kind,
+    price: Math.round(parseFloat($(`.pin[data-i="${i}"]`).value) * 10000), license_id: $(`.lin[data-i="${i}"]`).value }));
   if (items.some(x => !(x.price >= 10))) { msg.textContent = "Every price must be at least $0.0010."; return; }
-  btn.disabled = true; btn.textContent = "Going live…";
+  const email = $("#payout-email").value.trim();
+  if (!scanned.publisher_id && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = "Enter the PayPal email where your earnings should go."; $("#payout-email").focus(); return; }
+  btn.disabled = true; btn.textContent = "Going live…"; msg.textContent = "";
   try {
-    const r = await api("/v1/demo/go-live", { method: "POST", body: JSON.stringify({ items: items.map(x => ({ resource_id: x.p.resource_id, price: x.price, license_id: x.lic })) }) });
+    const r = await api("/v1/demo/go-live", { method: "POST", body: JSON.stringify({ items, site: { name: scanned.site, base: scanned.base }, paypal_email: email || null }) });
+    scanned.publisher_id = r.publisher_id; scanned.live_paths = r.paths;
+    pubId = r.publisher_id; await Promise.all([loadPublishers(), loadCatalog(), loadConfig()]);
     $("#w-test").hidden = false; rail(3);
-    $("#live-banner").innerHTML = `<div class="live-banner"><span style="font-size:28px">●</span><div><b>You're live.</b><div style="color:var(--ink-2)">${r.live} pages are behind the gateway. AI agents now get a price instead of a free page.</div></div></div>`;
+    $("#live-banner").innerHTML = `<div class="live-banner"><span style="font-size:28px">●</span><div><b>${esc(scanned.site)} is live.</b><div style="color:var(--ink-2)">${r.live} pages are behind the gateway. AI agents now get a price instead of a free page.</div></div></div>`;
     $("#w-test").scrollIntoView({ behavior: REDUCED ? "auto" : "smooth" });
     loadPublisher();
   } catch (e) { msg.textContent = e.message; }
   btn.disabled = false; btn.textContent = "Go live";
 };
 $("#test-btn").onclick = async () => {
-  const page = scanned?.pages.find(p => p.resource_id && p.path.startsWith("/blog/")) || { path: "/blog/python-speed-benchmark" };
+  const path = (scanned?.live_paths || [])[0] || "/p/codedojo/what-is-oop";
+  const page = { path };
   const out = $("#test-out"), btn = $("#test-btn"); btn.disabled = true;
   out.innerHTML = `<div class="console"><div>→ GET ${esc(FF.gatewayBase() + page.path)}</div><div>  User-Agent: ExampleAIBot/1.0 (test) · no payment</div></div>`;
   try {
@@ -843,34 +854,100 @@ $("#test-btn").onclick = async () => {
   btn.disabled = false;
 };
 
-/* ================= demo guide ================= */
-const GUIDE = [
-  { t: "Publisher: put a site behind Fairfetch", cap: "Click codedojo.dev, accept the AI prices, go live, send a test bot.", go: "#publisher-setup", el: "#w-site" },
-  { t: "Owner: fund the wallet with PayPal", cap: "Add $5 with PayPal Checkout (test login is shown), then write a spending rule.", go: "#agent", el: "#wallet-card" },
-  { t: "Ask the agent", cap: "Pick the Python question. Watch it price, choose, pay and read.", go: "#agent", el: "#composer" },
-  { t: "Publisher: see the money arrive", cap: "Earnings, who paid and why, and how the work was used.", go: "#publisher", el: "#earn-card" },
-  { t: "Catch a careless agent", cap: "Switch to Careless agent and ask again. The license check catches the copying.", go: "#agent", el: ".seg", sloppy: true },
-  { t: "Pay the publisher with PayPal", cap: "Send earnings with PayPal Payouts.", go: "#publisher", el: "#payout-btn" },
+/* ================= spotlight tour ================= */
+const TOUR = [
+  { center: true, k: "Fairfetch in 2 minutes", t: "Be a publisher, then the owner of an AI agent.",
+    d: "Everything here is real: three real websites, PayPal sandbox payments, a real AI agent. Use “Do it for me” on any step, or click things yourself." },
+  { go: "#publisher-setup", el: "#w-site", k: "Publisher · 1", t: "Connect a real website",
+    d: "StudyNest is a homework-help site that AI tools answer from for free. Scan it: Fairfetch reads its sitemap and an AI prices every page.",
+    act: () => $("#use-demo").click(), ready: () => $$(".pg").length > 0 },
+  { go: "#publisher-setup", el: "#w-prices", k: "Publisher · 2", t: "Prices set by originality",
+    d: "Each page got a price and a reason. Pick a license per page: read, quote or data.", act: () => $("#to-connect").click(), ready: () => !$("#w-connect").hidden },
+  { go: "#publisher-setup", el: "#w-connect", k: "Publisher · 3", t: "Switch it on",
+    d: "Say where earnings go, then go live. From now on AI agents get a price instead of the page.", act: () => $("#go-live").click(), ready: () => !$("#w-test").hidden },
+  { go: "#publisher-setup", el: "#w-test", k: "Publisher · 4", t: "Knock like an AI bot",
+    d: "A real unpaid request goes through the gateway. It answers HTTP 402 Payment Required, with the price.", act: () => $("#test-btn").click(), ready: () => /HTTP \d{3}/.test($("#test-out").textContent) },
+  { go: "#agent", el: "#wallet-card", k: "Agent owner · 1", t: "Fund the agent with PayPal",
+    d: "Pick an amount and approve it in PayPal. The test login appears right below the button. Then write a spending rule in plain English." },
+  { go: "#agent", el: ".suggest", alt: "#composer", k: "Agent owner · 2", t: "Ask a question",
+    d: "The agent finds sources, reads their prices, buys only what adds something, and answers with credit.",
+    act: () => { $("#q").value = "How does photosynthesis work?"; ask(); }, ready: () => !running, linger: 5000 },
+  { go: "#publisher", el: "#earn-card", k: "Publisher · 5", t: "The money arrives",
+    d: "Back as the publisher: earnings, who paid, and the agent's own reason for buying.",
+    act: () => { if (scanned?.publisher_id) { pubId = scanned.publisher_id; $("#pub-pick").value = pubId; loadPublisher(); } } },
+  { go: "#agent", el: ".chat-h .seg", k: "Agent owner · 3", t: "Catch a careless agent",
+    d: "This agent pastes text and forgets credit. Fairfetch catches it, fixes the answer and signs a receipt.",
+    act: () => { $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === "sloppy")); $("#q").value = "What is object-oriented programming?"; ask(); }, ready: () => !running, linger: 5000 },
+  { go: "#publisher", el: "#payout-btn", k: "Publisher · 6", t: "Get paid with PayPal",
+    d: "Earnings go out with PayPal Payouts, in whole cents, in one batch.", act: () => $("#payout-btn").click(), ready: () => !$("#payout-btn").disabled, linger: 2500 },
+  { center: true, k: "Tour complete", t: "That was the whole loop.", end: true,
+    d: "You connected a website, an agent paid to read it with PayPal money, a careless answer was caught and fixed with a signed receipt, and the publisher was paid with PayPal Payouts." },
 ];
-let guideStep = 0;
-function renderGuide() {
-  $("#guide-steps").innerHTML = GUIDE.map((g, i) => `<button class="g ${i === guideStep ? "on" : i < guideStep ? "done" : ""}" data-g="${i}"><i>${i < guideStep ? "✓" : i + 1}</i>${esc(g.t)}</button>`).join("") +
-    `<span class="cap">${esc(GUIDE[guideStep].cap)}</span>`;
-  $$("#guide-steps .g").forEach(b => b.onclick = () => goGuide(+b.dataset.g));
+let tourIdx = -1;
+function tourPlace() {
+  const st = TOUR[tourIdx]; if (!st) return;
+  const hole = $("#tour .tour-hole"), card = $("#tour .tour-card");
+  const el = st.center ? null : ($(st.el) && !$(st.el).closest("[hidden]") ? $(st.el) : (st.alt ? $(st.alt) : null));
+  const visible = el && el.offsetParent !== null;
+  if (!visible) { hole.style.cssText = "opacity:0"; card.classList.add("center"); card.style.cssText = ""; return; }
+  const r = el.getBoundingClientRect(), pad = 8;
+  hole.style.cssText = `opacity:1;top:${r.top - pad}px;left:${r.left - pad}px;width:${r.width + pad * 2}px;height:${Math.min(r.height + pad * 2, innerHeight)}px`;
+  card.classList.remove("center");
+  const cw = Math.min(380, innerWidth - 32), below = r.bottom + 16 + 230 < innerHeight;
+  const top = below ? r.bottom + 16 : Math.max(16, r.top - 16 - card.offsetHeight);
+  const left = Math.min(Math.max(16, r.left), innerWidth - cw - 16);
+  card.style.cssText = `width:${cw}px;top:${top}px;left:${left}px`;
 }
-function goGuide(i) {
-  guideStep = i; const g = GUIDE[i];
-  if (location.hash !== g.go) location.hash = g.go; else route();
-  if (g.sloppy) $$("[data-mode]").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === "sloppy"));
-  setTimeout(() => { const el = $(g.el); if (el) { el.scrollIntoView({ block: "center", behavior: REDUCED ? "auto" : "smooth" }); el.classList.add("hl"); setTimeout(() => el.classList.remove("hl"), 3400); } }, 250);
-  renderGuide();
+function tourShow(i) {
+  tourIdx = i; const st = TOUR[i]; if (!st) return tourEnd();
+  $("#tour").hidden = false;
+  if (st.go && location.hash !== st.go) location.hash = st.go;
+  const card = $("#tour .tour-card");
+  card.innerHTML = `<span class="eyebrow">${esc(st.k)} · ${i}/${TOUR.length - 1}</span><b class="tour-t">${esc(st.t)}</b><p>${esc(st.d)}</p>
+    <div class="tour-bar"><i style="width:${(i / (TOUR.length - 1)) * 100}%"></i></div>
+    <div class="tour-btns">${st.end ? `<button class="btn btn-primary btn-sm" data-t="close">Explore on your own</button>`
+      : `${i > 0 ? `<button class="btn btn-ghost btn-sm" data-t="back">Back</button>` : `<button class="btn btn-ghost btn-sm" data-t="close">Skip</button>`}
+      ${st.act ? `<button class="btn btn-ink btn-sm" data-t="do">Do it for me</button>` : ""}
+      <button class="btn btn-primary btn-sm" data-t="next">${i === 0 ? "Start" : "Next"} →</button>`}</div>`;
+  card.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+    const t = b.dataset.t;
+    if (t === "next") tourShow(i + 1); else if (t === "back") tourShow(i - 1); else if (t === "close") tourEnd();
+    else if (t === "do") {
+      st.act(); b.disabled = true; b.textContent = "Working…";
+      // move on only when the real action has finished, then give people a moment to see the result
+      const t0 = Date.now();
+      const wait = setInterval(() => {
+        if (tourIdx !== i) return clearInterval(wait);
+        const done = st.ready ? st.ready() : true;
+        if ((done && Date.now() - t0 > 900) || Date.now() - t0 > 180000) {
+          clearInterval(wait); b.textContent = "Done ✓";
+          setTimeout(() => tourIdx === i && tourShow(i + 1), st.linger || 1400);
+        }
+      }, 300);
+    }
+  });
+  const target = st.center ? null : $(st.el);
+  if (target && target.offsetParent !== null) target.scrollIntoView({ block: "center", behavior: REDUCED ? "auto" : "smooth" });
+  setTimeout(tourPlace, 30); setTimeout(tourPlace, 450);
 }
-function setTour(open) { $("#guide").hidden = !open; $("#guide-toggle").setAttribute("aria-expanded", open); $("#guide-toggle").textContent = open ? "Hide tour" : "Take the tour"; }
-$("#guide-toggle").onclick = () => setTour($("#guide").hidden);
-try { if (!localStorage.getItem("ff_tour_seen")) { setTour(true); localStorage.setItem("ff_tour_seen", "1"); } } catch { setTour(true); }
+function tourEnd() { $("#tour").hidden = true; tourIdx = -1; }
+addEventListener("resize", () => tourIdx >= 0 && tourPlace());
+addEventListener("scroll", () => tourIdx >= 0 && tourPlace(), { passive: true });
+setInterval(() => tourIdx >= 0 && tourPlace(), 700);  // follow elements that appear or move
+$("#guide-toggle").onclick = () => tourShow(0);
+try { if (!localStorage.getItem("ff_tour_seen")) { localStorage.setItem("ff_tour_seen", "1"); setTimeout(() => tourShow(0), 900); } } catch {}
 
-/* deployment config: test mode + PayPal sandbox test buyer */
-let CONFIG = { test_mode: false, test_buyer: null };
+/* deployment config: test mode, PayPal sandbox test buyer, publisher websites */
+let CONFIG = { test_mode: false, test_buyer: null, sites: [] };
+async function loadConfig() {
+  try {
+    CONFIG = await api("/v1/demo/config");
+    $("#testmode").hidden = !CONFIG.test_mode;
+    const d = demoSite();
+    $("#open-demo").href = d.url || "#";
+    $("#try-sites").hidden = !d.url;
+  } catch {}
+}
 function buyerBox() {
   const b = CONFIG.test_buyer; if (!b) return "";
   const row = (label, v) => `<div class="cred"><span class="cred-v" title="${label}: ${esc(v)}">${esc(v)}</span>
@@ -884,7 +961,7 @@ document.addEventListener("click", e => {
 
 /* ================= boot ================= */
 (async () => {
-  await Promise.all([loadCatalog(), loadPublishers(), api("/v1/demo/config").then(c => { CONFIG = c; $("#testmode").hidden = !c.test_mode; }).catch(() => {})]);
+  await Promise.all([loadCatalog(), loadPublishers(), loadConfig()]);
   route();
   setInterval(() => { if (document.hidden) return; role === "publisher" ? loadPublisher() : (!running && loadOwner()); }, 5000);
 })();

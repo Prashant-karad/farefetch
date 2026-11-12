@@ -8,6 +8,7 @@ import asyncio
 import html as htmlmod
 import json
 import re
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,8 +29,14 @@ from app.redis_client import redis_client
 from app.routers.demo import demo_agent, require_demo, usd
 from app.services import llm, pricing
 from app.services.budget_rules import parse_rule
+from app.services.page_text import extract as extract_text
 
 STATIC = Path(__file__).resolve().parents[1] / "static"
+_SITES_DIR = Path(__file__).resolve().parents[3] / "sites"
+sys.path.insert(0, str(_SITES_DIR))
+from content import SITES  # noqa: E402  (the publisher websites)
+
+SITE_URLS = json.loads((_SITES_DIR / "urls.json").read_text())
 router = APIRouter(tags=["product"], dependencies=[Depends(require_demo)])
 
 
@@ -44,13 +51,25 @@ async def app_page():
 
 
 @router.get("/v1/demo/config")
-async def config():
+async def config(session: AsyncSession = Depends(get_session)):
     """What the app needs to know about this deployment. The test buyer is only ever exposed for PayPal sandbox."""
     sandbox = "sandbox" in settings.paypal_base_url
     buyer = None
     if sandbox and settings.paypal_test_buyer_email:
         buyer = {"email": settings.paypal_test_buyer_email, "password": settings.paypal_test_buyer_password}
-    return {"test_mode": sandbox, "test_buyer": buyer}
+    connected = {r[0] for r in (await session.execute(select(Publisher.website_url))).all() if r[0]}
+    sites = [{"slug": slug, "name": SITES[slug]["name"], "url": url, "connected": url in connected}
+             for slug, url in SITE_URLS.items()]
+    return {"test_mode": sandbox, "test_buyer": buyer, "sites": sites,
+            "default_payout_email": settings.publisher_b_paypal_email if sandbox else None}
+
+
+def norm(url: str | None) -> str:
+    return (url or "").split("#")[0].split("?")[0].rstrip("/").lower()
+
+
+def slugify(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "site"
 
 
 def ago(dt: datetime) -> str:
@@ -61,9 +80,9 @@ def ago(dt: datetime) -> str:
 # Landing: one real 402, fetched live from the gateway
 # =====================================================================================
 @router.get("/v1/demo/knock")
-async def knock(path: str = "/blog/python-speed-benchmark"):
+async def knock(path: str = "/p/codedojo/what-is-oop"):
     """What an AI bot sees when it knocks without paying. Straight from the gateway."""
-    if not re.fullmatch(r"/(blog|api)/[a-z0-9-]+", path):
+    if not re.fullmatch(r"/(blog|api)/[a-z0-9-]+|/p/[a-z0-9-]+/[a-z0-9-]+", path):
         raise HTTPException(400, detail={"code": "bad_path", "message": "Path must look like /blog/<slug>"})
     t0 = time.perf_counter()
     async with httpx.AsyncClient(timeout=5) as c:
@@ -152,11 +171,6 @@ async def discover_pages(client: httpx.AsyncClient, base: str) -> tuple[str, lis
 async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
     """Real scan of a website: find its pages, read them, and let the AI suggest a price for each."""
     url = body.url.strip()
-    publisher_filter = body.publisher_id
-    display_host = None
-    if re.sub(r"^https?://", "", url).strip("/").lower() in ("codedojo.dev", "www.codedojo.dev"):
-        # Code Dojo is the publisher this deployment hosts; its site runs privately behind the gateway
-        url, publisher_filter, display_host = settings.origin_url, "pub_code_dojo", "codedojo.dev"
     if "://" not in url:
         url = "https://" + url
     parsed = urlparse(url)
@@ -170,11 +184,8 @@ async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
             method, urls, site_name = await discover_pages(client, base)
             urls = urls[:40]
 
-            # Our demo site: only this publisher's pages (the origin hosts two publishers)
-            known = {r.path: r for r in (await session.scalars(select(Resource))).all()}
-            if publisher_filter:
-                urls = [u for u in urls if urlparse(u).path not in known
-                        or known[urlparse(u).path].publisher_id == publisher_filter]
+            # Pages already on Fairfetch are recognised by their real address
+            known = {norm(r.origin_url): r for r in (await session.scalars(select(Resource))).all() if r.origin_url}
             urls = urls[:10]
 
             blocked = []
@@ -185,7 +196,7 @@ async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
                     if r.status_code in (401, 403, 429):
                         blocked.append(u)
                         return None
-                    title, text = page_text(r.text, r.headers.get("content-type", ""))
+                    title, text = extract_text(r.text, r.headers.get("content-type", ""))
                     return {"url": u, "path": urlparse(u).path, "title": title or urlparse(u).path, "text": text}
                 except httpx.HTTPError:
                     return None
@@ -220,7 +231,7 @@ async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
             score, reason = pricing.heuristic_uniqueness(p["text"], [q["text"] for q in pages if q is not p])
             source = "heuristic"
         price = pricing.price_for(score)
-        res = known.get(p["path"])
+        res = known.get(norm(p["url"]))
         out.append({
             "path": p["path"], "url": p["url"], "title": p["title"], "words": len(p["text"].split()),
             "excerpt": " ".join(p["text"].split()[:26]) + " …",
@@ -230,44 +241,89 @@ async def scan(body: ScanRequest, session: AsyncSession = Depends(get_session)):
             "current_price": res.price if res else None, "current_license": res.license_id if res else None,
         })
     out.sort(key=lambda x: -x["uniqueness"])
-    if display_host:
-        site_name, base = "Code Dojo", f"https://{display_host}"
-        for page in out:
-            page["url"] = base + page["path"]
-    return {"site": site_name or parsed.netloc, "base": base, "found_via": method, "pages": out,
+    name = re.split(r"\s[:|·–-]\s|:\s", site_name or "")[0].strip() or parsed.netloc.split(".")[0]
+    existing = next((known[norm(x["url"])].publisher_id for x in out if norm(x["url"]) in known), None)
+    for x in out:  # "Page title · Site name" -> "Page title"
+        x["title"] = re.sub(rf"\s*[·|–-]\s*{re.escape(name)}\s*$", "", x["title"]).strip() or x["title"]
+    return {"site": name, "base": base, "slug": slugify(name), "publisher_id": existing, "found_via": method, "pages": out,
             "ms": round((time.perf_counter() - t0) * 1000), "ai_model": f"{llm.provider()} ({llm.model()})" if ai_by_i else None,
             "connectable": any(p["resource_id"] for p in out)}
 
 
 class GoLiveItem(BaseModel):
-    resource_id: str
+    resource_id: str | None = None          # a page already on Fairfetch
+    url: str | None = Field(default=None, max_length=1000)   # or a new page on the publisher's website
+    title: str | None = Field(default=None, max_length=300)
+    excerpt: str | None = Field(default=None, max_length=2000)
+    words: int = 0
+    kind: str = "article"
     price: int = Field(ge=10, le=5000)
     license_id: str
 
 
+class SiteInfo(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    base: str = Field(min_length=8, max_length=500)
+
+
 class GoLiveRequest(BaseModel):
     items: list[GoLiveItem] = Field(min_length=1, max_length=100)
+    site: SiteInfo | None = None
+    paypal_email: str | None = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$", max_length=320)
 
 
 @router.post("/v1/demo/go-live")
 async def go_live(body: GoLiveRequest, session: AsyncSession = Depends(get_session)):
     """Apply the chosen prices and licenses. The gateway picks them up immediately (cache invalidated)."""
     licenses = {l.id for l in (await session.scalars(select(License))).all()}
-    changed = []
+    changed, publisher_id = [], None
+    new_items = [i for i in body.items if not i.resource_id]
+    if new_items:
+        # A publisher connecting their own website: create the publisher, its payout account and its pages
+        if body.site is None or not body.paypal_email:
+            raise HTTPException(400, detail={"code": "missing_site", "message": "A new site needs its name and a PayPal email for payouts"})
+        slug = slugify(body.site.name)
+        publisher_id = f"pub_{slug.replace('-', '_')}"
+        pub = await session.get(Publisher, publisher_id)
+        if pub is None:
+            pub = Publisher(id=publisher_id, name=body.site.name[:200], paypal_email=body.paypal_email, website_url=body.site.base)
+            session.add(pub)
+            session.add(Account(type="publisher_payable", owner_id=publisher_id))
+            await session.flush()
+        else:
+            pub.paypal_email = body.paypal_email
     for item in body.items:
-        res = await session.get(Resource, item.resource_id)
-        if res is None or item.license_id not in licenses:
-            raise HTTPException(400, detail={"code": "bad_item", "message": f"Unknown resource or license: {item.resource_id}"})
-        res.price, res.license_id = item.price, item.license_id
+        if item.license_id not in licenses:
+            raise HTTPException(400, detail={"code": "bad_license", "message": f"Unknown license {item.license_id}"})
+        if item.resource_id:
+            res = await session.get(Resource, item.resource_id)
+            if res is None:
+                raise HTTPException(400, detail={"code": "bad_item", "message": f"Unknown resource {item.resource_id}"})
+            res.price, res.license_id = item.price, item.license_id
+            publisher_id = publisher_id or res.publisher_id
+        else:
+            if not item.url or not item.title:
+                raise HTTPException(400, detail={"code": "bad_item", "message": "New pages need a url and a title"})
+            page = slugify(urlparse(item.url).path.strip("/").split("/")[-1] or item.title)
+            path = f"/p/{slug}/{page}"
+            res = await session.scalar(select(Resource).where(Resource.path == path))
+            if res is None:
+                res = Resource(id=f"res_{slug}_{page}".replace("-", "_")[:64], publisher_id=publisher_id, path=path,
+                               origin_url=item.url, kind="api" if item.kind == "api" else "article", title=item.title[:300],
+                               price=item.price, license_id=item.license_id,
+                               preview=" ".join((item.excerpt or "").replace(" …", "").split()[:30]) + " ...", word_count=item.words)
+                session.add(res)
+            else:
+                res.price, res.license_id = item.price, item.license_id
         changed.append(res.path)
     await session.commit()
     for path in changed:
         await redis_client.delete(f"gw:resource:{path}")
-    return {"live": len(changed), "paths": changed}
+    return {"live": len(changed), "paths": changed, "publisher_id": publisher_id}
 
 
 class TestBotRequest(BaseModel):
-    path: str = Field(pattern=r"^/(blog|api)/[a-z0-9-]+$")
+    path: str = Field(pattern=r"^(/(blog|api)/[a-z0-9-]+|/p/[a-z0-9-]+/[a-z0-9-]+)$")
 
 
 @router.post("/v1/demo/test-bot")
@@ -309,6 +365,7 @@ async def publisher_view(publisher_id: str, session: AsyncSession = Depends(get_
                                   .where(LedgerEntry.account_id == acct.id, LedgerEntry.amount > 0))
     resources = (await session.scalars(select(Resource).where(Resource.publisher_id == pub.id)
                                        .order_by(Resource.price.desc()))).all()
+    on_sale = [r for r in resources if not r.path.startswith("/retired/")]
     rmap = {r.id: r for r in resources}
 
     counts: dict[str, dict[str, int]] = {}
@@ -356,7 +413,7 @@ async def publisher_view(publisher_id: str, session: AsyncSession = Depends(get_
         "content": [{"resource_id": r.id, "title": r.title, "path": r.path, "kind": r.kind, "price": r.price,
                      "price_display": usd(r.price), "license_id": r.license_id,
                      "asked": counts.get(r.id, {}).get("payment_required", 0),
-                     "paid_reads": counts.get(r.id, {}).get("granted", 0)} for r in resources],
+                     "paid_reads": counts.get(r.id, {}).get("granted", 0)} for r in on_sale],
     }
 
 

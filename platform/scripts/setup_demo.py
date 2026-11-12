@@ -44,7 +44,7 @@ async def main() -> None:
             print("Added paid API resource /api/job-trends ($0.0050 per pass)")
 
         for pub_id, var in (("pub_code_dojo", "PUBLISHER_A_PAYPAL_EMAIL"),
-                            ("pub_learn_daily", "PUBLISHER_B_PAYPAL_EMAIL")):
+                            ("pub_moneywise", "PUBLISHER_B_PAYPAL_EMAIL")):
             email = env(var)
             if email:
                 (await session.get(Publisher, pub_id)).paypal_email = email

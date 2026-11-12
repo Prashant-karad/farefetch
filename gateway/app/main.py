@@ -9,6 +9,7 @@ from app.config import settings
 from app.passes import PassError, verify_pass
 
 origin = httpx.AsyncClient(base_url=settings.origin_url, timeout=10.0)
+web = httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers={"User-Agent": "FairfetchGateway/1.0"})
 PUBLIC_PLATFORM = settings.public_platform_url or settings.platform_url
 
 
@@ -16,6 +17,7 @@ PUBLIC_PLATFORM = settings.public_platform_url or settings.platform_url
 async def lifespan(app: FastAPI):
     yield
     await origin.aclose()
+    await web.aclose()
     await pc.http.aclose()
     await pc.redis_client.aclose()
 
@@ -60,9 +62,9 @@ def payment_required(resource: dict, agent: dict | None, code: str, message: str
     )
 
 
-async def forward_to_origin(path: str) -> Response:
-    """Reverse proxy: fetch the real content from the publisher's server."""
-    upstream = await origin.get(path)
+async def forward_to_origin(path: str, origin_url: str | None = None) -> Response:
+    """Reverse proxy: fetch the real content from the publisher's own server."""
+    upstream = await (web.get(origin_url) if origin_url else origin.get(path))
     return Response(content=upstream.content, status_code=upstream.status_code,
                     media_type=upstream.headers.get("content-type"))
 
@@ -140,7 +142,7 @@ async def protect(path: str, request: Request, background: BackgroundTasks,
 
         # 4. Valid pass: fetch the real content from the publisher.
         try:
-            response = await forward_to_origin(path)
+            response = await forward_to_origin(path, resource.get("origin_url"))
         except httpx.HTTPError:
             return error(502, "origin_unreachable", "The publisher's site did not respond")
         response.headers["X-Fairfetch-Grant"] = claims["jti"]
@@ -159,6 +161,14 @@ async def protected_article(slug: str, request: Request, background: BackgroundT
                             authorization: str | None = Header(default=None),
                             x_access_pass: str | None = Header(default=None)):
     return await protect(f"/blog/{slug}", request, background, authorization, x_access_pass)
+
+
+@app.get("/p/{site}/{page}")
+async def protected_site_page(site: str, page: str, request: Request, background: BackgroundTasks,
+                              authorization: str | None = Header(default=None),
+                              x_access_pass: str | None = Header(default=None)):
+    """Pages of publishers that connected their own website: /p/<site>/<page>."""
+    return await protect(f"/p/{site}/{page}", request, background, authorization, x_access_pass)
 
 
 @app.get("/api/{name}")

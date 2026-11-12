@@ -13,17 +13,26 @@ from app.db import SessionLocal, engine
 from app.models import Account, Agent, AgentOwner, BudgetPolicy, License, Publisher, Resource
 from app.services.security import generate_api_key, hash_api_key
 
-ARTICLES_DIR = Path(__file__).resolve().parents[2] / "demo-sites" / "blog" / "articles"
+import json
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "sites"))
+from content import SITES  # noqa: E402  (the publishers' websites: sites/content.py)
+
+SITE_URLS = json.loads((ROOT / "sites" / "urls.json").read_text())
 
 LICENSES = [
     {"id": "lic_read_24h", "type": "read", "max_quote_words": 8, "attribution_required": True, "ttl_hours": 24},
     {"id": "lic_quote_24h", "type": "quote", "max_quote_words": 50, "attribution_required": True, "ttl_hours": 24},
 ]
 
-# PayPal emails are placeholders; we replace them with sandbox accounts in M4.
+# Publishers already on Fairfetch at start. StudyNest is not here: it connects live through the setup flow.
+# PayPal emails are placeholders; scripts/setup_demo.py sets the sandbox accounts.
 PUBLISHERS = {
-    "code-dojo": {"id": "pub_code_dojo", "name": "Code Dojo", "paypal_email": "publisher-a@example.com"},
-    "learn-daily": {"id": "pub_learn_daily", "name": "Learn Daily", "paypal_email": "publisher-b@example.com"},
+    slug: {"id": site["publisher_id"], "name": site["name"], "paypal_email": f"{slug}@example.com",
+           "website_url": SITE_URLS[slug]}
+    for slug, site in SITES.items() if site["publisher_id"]
 }
 
 
@@ -56,21 +65,18 @@ async def main() -> None:
         await session.flush()  # send INSERTs now so the rows exist for the foreign keys below
 
         count = 0
-        for path in sorted(ARTICLES_DIR.glob("*.md")):
-            meta, body = parse_article(path)
-            words = body.split()
-            session.add(Resource(
-                id=f"res_{path.stem.replace('-', '_')}",
-                publisher_id=PUBLISHERS[meta["publisher"]]["id"],
-                path=f"/blog/{path.stem}",
-                kind="article",
-                title=meta["title"],
-                price=int(meta["price"]),
-                license_id=meta["license"],
-                preview=" ".join(words[:30]) + " ...",
-                word_count=len(words),
-            ))
-            count += 1
+        for slug, pub in PUBLISHERS.items():
+            for art_slug, title, price, license_id, text in SITES[slug]["articles"]:
+                words = text.split()
+                session.add(Resource(
+                    id=f"res_{art_slug.replace('-', '_')}",
+                    publisher_id=pub["id"],
+                    path=f"/p/{slug}/{art_slug}",                       # gateway address
+                    origin_url=f"{SITE_URLS[slug]}/{art_slug}/",        # the publisher's own page
+                    kind="article", title=title, price=price, license_id=license_id,
+                    preview=" ".join(words[:30]) + " ...", word_count=len(words),
+                ))
+                count += 1
 
         owner = AgentOwner(name="Maya's Study Assistant", email="owner@example.com")
         session.add(owner)

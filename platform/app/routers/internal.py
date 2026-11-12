@@ -33,6 +33,7 @@ async def lookup_resource(path: str = Query(...), session: AsyncSession = Depend
         "price": resource.price,
         "preview": resource.preview,
         "word_count": resource.word_count,
+        "origin_url": resource.origin_url,  # the publisher's own website (None = bundled demo origin)
         "license": {
             "id": lic.id,
             "type": lic.type,

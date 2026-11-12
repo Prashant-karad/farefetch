@@ -24,6 +24,21 @@ AUTH = {"Authorization": f"Bearer {config.API_KEY}"}
 _WORD = re.compile(r"[a-z0-9]+")
 
 
+_ARTICLE = re.compile(r"<article[^>]*>(.*?)</article>", re.S | re.I)
+_SKIP = re.compile(r"<(script|style|nav|header|footer|noscript|svg)[^>]*>.*?</\1>", re.S | re.I)
+
+
+def page_text(raw: str) -> str:
+    """Readable text of an HTML page: the <article> element when present (same rule as the platform)."""
+    import html as _html
+    m = _ARTICLE.search(raw)
+    part = m.group(1) if m else _SKIP.sub(" ", raw)
+    part = re.sub(r"</(p|h[1-6]|li|div)>", "\n\n", part, flags=re.I)
+    text = _html.unescape(re.sub(r"<[^>]+>", " ", part))
+    paras = [re.sub(r"[ \t\r\f\v]+", " ", p).strip() for p in text.split("\n\n")]
+    return "\n\n".join(p for p in paras if p)
+
+
 def usd(units: int) -> str:
     return f"${units // 10_000}.{units % 10_000:04d}"
 
@@ -158,8 +173,11 @@ def read(path: str, pass_token: str) -> str:
     t0 = time.perf_counter()
     resp = httpx.get(f"{config.GATEWAY_URL}{path}", headers={**AUTH, "X-Access-Pass": pass_token}, timeout=15)
     resp.raise_for_status()
-    data = resp.json()
-    text = data.get("body") or json.dumps(data)
+    if "json" in resp.headers.get("content-type", ""):
+        data = resp.json()
+        text = data.get("body") or json.dumps(data)
+    else:  # a publisher's own HTML page: read it the same way the license guard does
+        text = page_text(resp.text)
     emit("read", http=http_trace(resp, t0, ("x-fairfetch-grant", "x-fairfetch-license", "cache-control")),
          path=path, words=len(text.split()), excerpt=" ".join(text.split()[:60]))
     return text

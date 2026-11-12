@@ -229,13 +229,13 @@ a { color: var(--req); }
 
   <section class="controls" aria-label="Run the agent">
     <div class="q">
-      <input id="question" aria-label="Question for the research agent" value="How do I make my slow Python code faster, and which approach gives the biggest speed-up?">
+      <input id="question" aria-label="Question for the research agent" value="What is object-oriented programming, and why do developers use it?">
       <div class="presets">
         <span class="note">Try:</span>
-        <button class="chip" data-q="How do I make my slow Python code faster, and which approach gives the biggest speed-up?">Faster Python</button>
-        <button class="chip" data-q="How do I learn Python fast?">Learn Python fast</button>
+        <button class="chip" data-q="What is object-oriented programming, and why do developers use it?">What is OOP?</button>
+        <button class="chip" data-q="How does compound interest work, and why does starting early matter?">Compound interest</button>
         <button class="chip" data-q="What are the developer job trends for Python and JavaScript this week?">Job trends (paid API)</button>
-        <button class="chip" data-q="Why is my SQL query slow and how do indexes help?">Slow SQL query</button>
+        <button class="chip" data-q="How do SQL JOINs work?">SQL JOINs</button>
       </div>
     </div>
     <div class="go">
@@ -321,7 +321,7 @@ async function api(path, opts = {}) {
 const NODES = {
   agent:    { x: 120, y: 192, t: "Research agent", s: "Maya's Study Assistant", health: null },
   gateway:  { x: 440, y: 62,  t: "Gateway :8000", s: "402 · verifies passes", health: "Gateway" },
-  origin:   { x: 760, y: 62,  t: "Publisher sites :8002", s: "Code Dojo · Learn Daily", health: "Publisher origin" },
+  origin:   { x: 760, y: 62,  t: "Publisher websites", s: "Code Dojo · MoneyWise · StudyNest", health: "Publisher origin" },
   platform: { x: 440, y: 300, t: "Platform :8001", s: "wallet · ledger · signer", health: "Platform" },
   paypal:   { x: 760, y: 300, t: "PayPal", s: "Checkout in · Payouts out", health: "PayPal" },
   ai:       { x: 120, y: 336, t: "AI model", s: "Groq", health: "AI model" },

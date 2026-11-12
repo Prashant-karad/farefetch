@@ -240,22 +240,22 @@ footer a:hover { color: var(--ink); }
         <div class="panel on" data-panel="0">
           <div class="term">
             <div class="bar"><i></i><i></i><i></i><span class="live" id="k-live">● fetching live…</span></div>
-            <div class="cmd">$ curl -i <span id="k-url">/blog/python-speed-benchmark</span></div>
+            <div class="cmd">$ curl -i <span id="k-url">/p/codedojo/what-is-oop</span></div>
             <div><span class="st" id="k-status">HTTP/1.1 402 Payment Required</span></div>
             <pre id="k-body">{ "price": { "display": "$0.0400" }, ... }</pre>
           </div>
         </div>
         <div class="panel" data-panel="1">
           <div class="paybox">
-            <div class="row" style="display:flex;justify-content:space-between;align-items:baseline"><span class="eyebrow">Wallet</span><span class="mono num">$5.0000 → <b>$4.9600</b></span></div>
+            <div class="row" style="display:flex;justify-content:space-between;align-items:baseline"><span class="eyebrow">Wallet</span><span class="mono num">$10.0000 → <b>$9.9600</b></span></div>
             <div class="split-bar"><i style="flex:90;background:var(--green)"></i><i style="flex:10;background:var(--blue)"></i></div>
             <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-2)"><span>$0.0360 to the publisher</span><span>$0.0040 Fairfetch fee</span></div>
           </div>
           <div id="viz-ticket"></div>
-          <div class="claims">{ "iss": "fairfetch-platform", "sub": "agt_…", "rid": "res_python_speed_benchmark",<br>&nbsp;&nbsp;"lic": "lic_read_24h", "exp": +24h, "alg": "ES256" }</div>
+          <div class="claims">{ "iss": "fairfetch-platform", "sub": "agt_…", "rid": "res_what_is_oop",<br>&nbsp;&nbsp;"lic": "lic_read_24h", "exp": +24h, "alg": "ES256" }</div>
         </div>
         <div class="panel" data-panel="2">
-          <div class="redline">The <span class="redpen">plain loop took 1.9 seconds. Moving the work into a list comprehension brought it to 1.2 seconds</span> <ins>loop version was the slowest, and NumPy was about 47 times faster [Code Dojo]</ins> …</div>
+          <div class="redline">OOP <span class="redpen">is a way of organising code around objects: small bundles that keep data and the functions that work on that data together</span> <ins>groups data with the code that changes it, so each rule lives in one place [Code Dojo]</ins> …</div>
           <div style="max-width:340px" id="viz-receipt"></div>
         </div>
       </div>
@@ -382,14 +382,15 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
   addEventListener("resize", size);
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", colors);
 
-  const PATHS = [["/blog/python-speed-benchmark", 400, 0], ["/blog/sql-index-explained", 350, 0], ["/blog/learn-python-fast", 150, 1],
-                 ["/blog/python-profiling-guide", 300, 0], ["/blog/spaced-repetition", 200, 1], ["/api/job-trends", 50, 0],
-                 ["/blog/coding-interview-plan", 200, 1], ["/blog/git-undo-mistakes", 250, 0], ["/blog/compound-interest", 150, 1]];
+  const PATHS = [["/codedojo/what-is-oop", 400, 0], ["/moneywise/compound-interest", 300, 1], ["/studynest/photosynthesis", 160, 2],
+                 ["/codedojo/sql-joins-explained", 350, 0], ["/moneywise/index-funds", 250, 1], ["/studynest/newtons-laws", 150, 2],
+                 ["/codedojo/big-o", 300, 0], ["/moneywise/credit-scores", 250, 1], ["/studynest/quadratics", 150, 2]];
   const AGENTS = ["study-agent", "research-bot", "answer-engine", "tutor-ai", "news-agent"];
-  const pubs = [{ name: "Code Dojo", earned: 0, flash: 0 }, { name: "Learn Daily", earned: 0, flash: 0 }];
+  const pubs = [{ name: "Code Dojo", earned: 0, flash: 0 }, { name: "MoneyWise", earned: 0, flash: 0 }, { name: "StudyNest", earned: 0, flash: 0 }];
   const stats = { priced: 0, paid: 0, caught: 0, earned: 0 };
   let cards = [], floats = [], coins = [], t0 = performance.now(), last = t0, nextSpawn = 0, seq = 0;
   const lanes = () => [0.30, 0.50, 0.70].map(f => H * f);
+  const PUBY = [0.27, 0.50, 0.73];
   const gateX = () => W * 0.5;
   const small = () => W < 640;
 
@@ -426,7 +427,7 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
         c.x += speed * 1.25 * dt;
         if (c.x > W * 0.78 - cw) { c.phase = "receipt"; c.t = now;
           const p = pubs[c.pub], gain = Math.round(c.price * 0.9); p.earned += gain; p.flash = now; stats.earned += gain;
-          floats.push({ x: W * 0.88, y: H * (c.pub ? 0.64 : 0.36) - 30, text: `+$${(gain / 10000).toFixed(4)}`, t: now });
+          floats.push({ x: W * 0.88, y: H * PUBY[c.pub] - 30, text: `+$${(gain / 10000).toFixed(4)}`, t: now });
           if (c.caught) stats.caught++;
           c.stamp = c.caught ? "CAUGHT" : "FAIR USE"; }
       } else if (c.phase === "receipt") {
@@ -474,12 +475,12 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
     ctx.fillStyle = C.blue; ctx.font = `600 12px "IBM Plex Mono", monospace`; ctx.fillText("PayPal-funded wallets", gx, wy + 1);
 
     // publishers
-    [0.36, 0.64].forEach((f, i) => {
-      const p = pubs[i], x = W * 0.81, y = H * f - 34, w = W * 0.17, h = 68;
+    PUBY.forEach((f, i) => {
+      const p = pubs[i], x = W * 0.81, y = H * f - 30, w = W * 0.17, h = 60;
       const glow = Math.max(0, 1 - (now - p.flash) / 700);
       ctx.fillStyle = C.sheet; ctx.strokeStyle = glow > 0 ? C.green : C.line2; ctx.lineWidth = 1.5 + glow * 2;
       rr(x, y, w, h, 10); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = C.line; for (let k = 0; k < 3; k++) ctx.fillRect(x + 12, y + 30 + k * 9, w * (k === 2 ? .4 : .7), 4);
+      ctx.fillStyle = C.line; for (let k = 0; k < 2; k++) ctx.fillRect(x + 12, y + 32 + k * 9, w * (k === 1 ? .4 : .7), 4);
       ctx.fillStyle = C.ink; ctx.textAlign = "left"; ctx.font = `700 ${small() ? 11 : 13}px Archivo, sans-serif`;
       ctx.fillText(p.name, x + 12, y + 16);
       ctx.fillStyle = C.green; ctx.textAlign = "right"; ctx.font = `600 ${small() ? 10 : 12}px "IBM Plex Mono", monospace`;
@@ -562,25 +563,25 @@ new IntersectionObserver(([e]) => { if (e.isIntersecting) $("#problem").classLis
       const i = +e.target.dataset.step;
       steps.forEach(s => s.classList.toggle("on", s === e.target));
       panels.forEach(p => p.classList.toggle("on", +p.dataset.panel === i));
-      if (i === 1) $("#viz-ticket").innerHTML = FF.ticket({ title: "We benchmarked 6 ways to speed up a slow Python loop", publisher: "Code Dojo",
+      if (i === 1) $("#viz-ticket").innerHTML = FF.ticket({ title: "What is object-oriented programming (OOP)?", publisher: "Code Dojo",
         license_id: "lic_read_24h", expires_at: new Date(Date.now() + 86400000).toISOString(), price: "$0.0400", printing: true });
       if (i === 2) $("#viz-receipt").innerHTML = FF.receipt({ id: "rcp_3f9c2a71", time: new Date().toISOString(), passed: true, caught: 2,
-        items: [{ title: "We benchmarked 6 ways to speed up a slow Python loop", how_used: "paraphrased", longest_copied_run: 6, max_quote_words: 8, cited: true }],
+        items: [{ title: "What is object-oriented programming (OOP)?", how_used: "paraphrased", longest_copied_run: 6, max_quote_words: 8, cited: true }],
         printing: true, stampLand: true });
     }
   }, { rootMargin: "-45% 0px -45% 0px" });
   steps.forEach(s => io.observe(s));
-  $("#viz-ticket").innerHTML = FF.ticket({ title: "We benchmarked 6 ways to speed up a slow Python loop", publisher: "Code Dojo", license_id: "lic_read_24h",
+  $("#viz-ticket").innerHTML = FF.ticket({ title: "What is object-oriented programming (OOP)?", publisher: "Code Dojo", license_id: "lic_read_24h",
     expires_at: new Date(Date.now() + 86400000).toISOString(), price: "$0.0400" });
   $("#viz-receipt").innerHTML = FF.receipt({ id: "rcp_3f9c2a71", time: new Date().toISOString(), passed: true, caught: 2,
-    items: [{ title: "We benchmarked 6 ways to speed up a slow Python loop", how_used: "paraphrased", longest_copied_run: 6, max_quote_words: 8, cited: true }] });
+    items: [{ title: "What is object-oriented programming (OOP)?", how_used: "paraphrased", longest_copied_run: 6, max_quote_words: 8, cited: true }] });
 })();
 
 /* ================= live 402 from the real gateway ================= */
 (async () => {
   try {
     const k = await FF.api("/v1/demo/knock");
-    $("#k-url").textContent = FF.gatewayBase() + "/blog/python-speed-benchmark";
+    $("#k-url").textContent = FF.gatewayBase() + "/p/codedojo/what-is-oop";
     $("#k-status").textContent = `HTTP/1.1 ${k.status} ${k.reason}   (${k.ms} ms)`;
     const b = k.body;
     const view = { error: b.error, title: b.title, price: b.price, license: b.license, preview: { excerpt: b.preview.excerpt.slice(0, 90) + " …" },
@@ -592,9 +593,9 @@ new IntersectionObserver(([e]) => { if (e.isIntersecting) $("#problem").classLis
 
 /* ================= publisher mock: typing + pages dropping in ================= */
 (() => {
-  const rows = [["We benchmarked 6 ways to speed up a slow Python loop", "$0.040"], ["Why your SQL query is slow: indexes explained", "$0.035"],
-                ["Find the slow part first: Python profiling", "$0.030"], ["How to undo almost any Git mistake", "$0.025"]];
-  const site = "codedojo.dev";
+  const rows = [["How photosynthesis works, step by step", "$0.016"], ["Newton's three laws of motion", "$0.015"],
+                ["Solving quadratic equations: three methods", "$0.015"], ["How to write a strong essay introduction", "$0.014"]];
+  const site = "studynest.org";
   async function loop() {
     const typed = $("#typed"), host = $("#mock-rows");
     while (true) {
@@ -608,8 +609,8 @@ new IntersectionObserver(([e]) => { if (e.isIntersecting) $("#problem").classLis
     }
   }
   new IntersectionObserver(([e], o) => { if (e.isIntersecting) { o.disconnect(); loop(); } }).observe($("#mock-pub"));
-  $("#mock-tix").innerHTML = FF.ticket({ title: "Find the slow part first: Python profiling", publisher: "Code Dojo", license_id: "lic_read_24h",
-    expires_at: new Date(Date.now() + 86399000).toISOString(), price: "$0.0300" });
+  $("#mock-tix").innerHTML = FF.ticket({ title: "SQL JOINs explained with one example", publisher: "Code Dojo", license_id: "lic_read_24h",
+    expires_at: new Date(Date.now() + 86399000).toISOString(), price: "$0.0350" });
 })();
 </script>
 </body>

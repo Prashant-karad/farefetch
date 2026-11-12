@@ -35,6 +35,11 @@ async def api(name: str, request: Request):
     return await _forward(request, f"/api/{name}")
 
 
+@router.get("/p/{site}/{page}")
+async def site_page(site: str, page: str, request: Request):
+    return await _forward(request, f"/p/{site}/{page}")
+
+
 @router.get("/.well-known/fairfetch.json")
 async def terms(request: Request):
     return await _forward(request, "/.well-known/fairfetch.json")

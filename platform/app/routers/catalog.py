@@ -25,7 +25,8 @@ async def catalog(q: str | None = Query(default=None, max_length=300), limit: in
                   session: AsyncSession = Depends(get_session)):
     """Discovery: what's for sale, with previews. Agents search this before requesting content.
     Ranking is simple keyword overlap (a real system would use search/embeddings)."""
-    rows = (await session.execute(select(Resource, Publisher).join(Publisher))).all()
+    rows = (await session.execute(select(Resource, Publisher).join(Publisher)
+                                  .where(Resource.path.notlike("/retired/%")))).all()  # retired pages are not for sale
     query_terms = _terms(q) if q else set()
     scored = []
     for resource, publisher in rows:

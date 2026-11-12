@@ -17,4 +17,5 @@ cd "$ROOT/platform"
 alembic upgrade head
 python -m scripts.seed
 python -m scripts.setup_demo
+python -m scripts.migrate_sites
 exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --proxy-headers --forwarded-allow-ips='*'
