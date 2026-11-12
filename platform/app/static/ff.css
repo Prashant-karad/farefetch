@@ -13,8 +13,8 @@
   --blue: #2c3cf0;
   --blue-ink: #ffffff;
   --blue-soft: #e3e6ff;
-  --ticket: #ffd84a;
-  --ticket-ink: #2a2200;
+  --ticket: #ffa66b;
+  --ticket-ink: #3a1a05;
   --red: #d63a2b;
   --red-soft: #fbe3df;
   --green: #0f8a55;
@@ -30,7 +30,7 @@
   :root:not([data-theme="light"]) {
     --paper: #101215; --sheet: #171a1f; --sheet-2: #1d2128; --ink: #eef0ea; --ink-2: #c9cdd3; --muted: #959ca6;
     --line: #2a2f37; --line-2: #3a404a; --blue: #7b86ff; --blue-ink: #0b0d24; --blue-soft: #222653;
-    --ticket: #ffd84a; --ticket-ink: #2a2200; --red: #ff6a5b; --red-soft: #3a1d1a; --green: #3fcf8e; --green-soft: #15302a;
+    --ticket: #ffa66b; --ticket-ink: #3a1a05; --red: #ff6a5b; --red-soft: #3a1d1a; --green: #3fcf8e; --green-soft: #15302a;
     --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 14px 34px -14px rgba(0, 0, 0, .6);
     color-scheme: dark;
   }
@@ -38,7 +38,7 @@
 :root[data-theme="dark"] {
   --paper: #101215; --sheet: #171a1f; --sheet-2: #1d2128; --ink: #eef0ea; --ink-2: #c9cdd3; --muted: #959ca6;
   --line: #2a2f37; --line-2: #3a404a; --blue: #7b86ff; --blue-ink: #0b0d24; --blue-soft: #222653;
-  --ticket: #ffd84a; --ticket-ink: #2a2200; --red: #ff6a5b; --red-soft: #3a1d1a; --green: #3fcf8e; --green-soft: #15302a;
+  --ticket: #ffa66b; --ticket-ink: #3a1a05; --red: #ff6a5b; --red-soft: #3a1d1a; --green: #3fcf8e; --green-soft: #15302a;
   --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 14px 34px -14px rgba(0, 0, 0, .6);
   color-scheme: dark;
 }
@@ -104,7 +104,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
           mask: radial-gradient(circle at 0 50%, transparent var(--notch), #000 calc(var(--notch) + .5px)) left / 51% 100% no-repeat,
                 radial-gradient(circle at 100% 50%, transparent var(--notch), #000 calc(var(--notch) + .5px)) right / 51% 100% no-repeat; }
 .ticket .t-main { padding: 11px 14px 11px 18px; display: grid; gap: 3px; min-width: 0; }
-.ticket .t-stub { padding: 11px 16px 11px 14px; border-left: 2px dashed rgba(42, 34, 0, .35); display: grid; align-content: center;
+.ticket .t-stub { padding: 11px 16px 11px 14px; border-left: 2px dashed rgba(58, 26, 5, .35); display: grid; align-content: center;
   justify-items: center; gap: 2px; font-family: var(--mono); }
 .ticket .t-k { font: 600 10px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
 .ticket .t-title { font: 700 14px/1.25 var(--display); overflow-wrap: anywhere; }

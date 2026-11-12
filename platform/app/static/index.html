@@ -22,10 +22,16 @@ nav.top .links a:not(.btn) { text-decoration: none; color: var(--ink-2); }
 nav.top .links a:not(.btn):hover { color: var(--ink); }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 31; background: var(--paper); }
 
+/* each section fills one screen; scrolling snaps gently so you never land on half a section */
+html { scroll-snap-type: y proximity; scroll-padding-top: 64px; }
+.hero, .problem, .sides, .money, .pricing, .proof, .final, .how-head { scroll-snap-align: start; }
+.step { scroll-snap-align: center; }
+.problem, .sides, .money, .pricing, .proof, .final { min-height: calc(100vh - 64px); display: grid; align-content: center; }
+
 /* hero */
-.hero { padding-block: 64px 30px; display: grid; gap: 26px; }
-.hero h1 { margin: 0; font: 820 clamp(42px, 6vw, 80px)/1.04 var(--display); font-variation-settings: "wdth" 106;
-  letter-spacing: -.022em; text-wrap: balance; max-width: 16ch; }
+.hero { padding-block: clamp(24px, 4vh, 56px) 24px; display: grid; gap: 22px; min-height: calc(100vh - 64px); align-content: start; }
+.hero h1 { margin: 0; font: 820 clamp(38px, min(5.6vw, 8.6vh), 78px)/1.04 var(--display); font-variation-settings: "wdth" 106;
+  letter-spacing: -.022em; text-wrap: balance; max-width: 24ch; }
 .hero h1 .w { display: inline-block; animation: rise .8s cubic-bezier(.2,.9,.2,1) both; animation-delay: calc(var(--i) * 70ms + 80ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(.45em); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 .hero h1 .paid { display: inline-flex; vertical-align: .32em; margin-left: .18em; transform: rotate(-8deg);
@@ -44,7 +50,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* stage */
 .stage { position: relative; border-radius: 22px; overflow: hidden; background: var(--sheet); border: 1px solid var(--line); box-shadow: var(--shadow); }
-.stage canvas { display: block; width: 100%; height: clamp(340px, 42vw, 500px); }
+.stage canvas { display: block; width: 100%; height: clamp(280px, calc(100vh - 430px), 520px); }
 .stage .labels { position: absolute; inset: 14px 18px auto; display: flex; justify-content: space-between; pointer-events: none; }
 .stage .ticker { position: absolute; left: 18px; right: 18px; bottom: 14px; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between;
   align-items: center; font: 500 12.5px var(--mono); color: var(--muted); pointer-events: none; }
@@ -52,7 +58,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .stage .sim { font-size: 11px; opacity: .8; }
 
 /* problem */
-.problem { padding-block: 110px 40px; display: grid; gap: 18px; }
+.problem { padding-block: 40px; gap: 18px; }
 .problem p { margin: 0; font: 700 clamp(28px, 4.4vw, 58px)/1.06 var(--display); font-variation-settings: "wdth" 112; letter-spacing: -.025em; max-width: 22ch; text-wrap: balance; }
 .problem p.dim { color: var(--muted); }
 .problem p .strike { position: relative; }
@@ -61,7 +67,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .problem p.answer { color: var(--blue); }
 
 /* steps */
-.how { padding-block: 70px 40px; }
+.how { padding-block: 40px; }
+.how-head { padding-top: 24px; }
 .how h2, .sides h2, .money h2, .proof h2 { margin: 0 0 8px; font: 800 clamp(30px, 4vw, 52px)/1 var(--display); font-variation-settings: "wdth" 115; letter-spacing: -.03em; text-wrap: balance; }
 .how .intro, .sides .intro, .money .intro { color: var(--ink-2); max-width: 60ch; margin: 0 0 30px; font-size: 18px; }
 .how-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 48px; align-items: start; }
@@ -80,7 +87,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .term .bar { display: flex; gap: 6px; margin-bottom: 10px; }
 .term .bar i { width: 10px; height: 10px; border-radius: 50%; background: #3a3f48; }
 .term .cmd { color: #9aa3ff; overflow-wrap: anywhere; }
-.term .st { color: #ffd84a; font-weight: 600; }
+.term .st { color: #ffa66b; font-weight: 600; }
 .term pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #c6ccd6; max-height: 300px; overflow: hidden; }
 .term .live { float: right; font-size: 11px; color: #3fcf8e; }
 .paybox { background: var(--sheet); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 12px; box-shadow: var(--shadow); }
@@ -91,9 +98,17 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .viz-mobile-note { display: none; }
 
 /* sides */
-.sides { padding-block: 90px 30px; }
+.sides { padding-block: 32px; }
 .sides-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .side { padding: 26px; display: grid; gap: 16px; align-content: start; }
+@media (max-height: 900px) {   /* keep "two sides" to one screen on laptops: the mock-ups already show the points */
+  .side { padding: 20px; gap: 12px; }
+  .sides .side ul { display: none; }
+  .sides h2 { font-size: clamp(28px, 3.4vw, 44px); }
+  .sides .intro { margin-bottom: 12px; }
+  .sides { padding-block: 18px; }
+  .mock { min-height: 0; }
+}
 .side > *, .mock > *, .proof-card > *, .step > * { min-width: 0; }
 .side h3 { margin: 0; font: 800 26px/1.1 var(--display); font-variation-settings: "wdth" 112; letter-spacing: -.02em; }
 .side ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
@@ -114,7 +129,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .walletline b { font: 800 30px var(--display); font-variation-settings: "wdth" 115; }
 
 /* money loop */
-.money { padding-block: 90px 30px; }
+.money { padding-block: 32px; }
 .loop { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; align-items: stretch; }
 .loop .node { padding: 18px; display: grid; gap: 6px; align-content: start; position: relative; }
 .loop .node b { font: 800 19px/1.15 var(--display); font-variation-settings: "wdth" 110; }
@@ -128,14 +143,14 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .ledger-strip { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* proof */
-.proof { padding-block: 90px 30px; }
+.proof { padding-block: 32px; }
 .proof-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 24px; }
 .proof-card { padding: 22px; display: grid; gap: 10px; align-content: start; }
 .proof-card h3 { margin: 0; font: 800 20px/1.15 var(--display); font-variation-settings: "wdth" 110; }
 .proof-card p { margin: 0; color: var(--ink-2); font-size: 15px; }
 
 /* pricing */
-.pricing { padding-block: 90px 30px; }
+.pricing { padding-block: 32px; }
 .pricing h2 { margin: 0 0 24px; font: 800 clamp(30px, 4vw, 52px)/1 var(--display); font-variation-settings: "wdth" 110; letter-spacing: -.025em; text-wrap: balance; }
 .price-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .price-card { padding: 24px; display: grid; gap: 8px; align-content: start; }
@@ -143,7 +158,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .price-card p { margin: 0; color: var(--ink-2); }
 
 /* cta */
-.final { padding-block: 110px 80px; text-align: left; display: grid; gap: 22px; }
+.final { padding-block: 40px; text-align: left; gap: 22px; }
 .final h2 { margin: 0; font: 850 clamp(40px, 7vw, 92px)/.95 var(--display); font-variation-settings: "wdth" 120; letter-spacing: -.035em; text-wrap: balance; max-width: 14ch; }
 footer { border-top: 1px solid var(--line); padding-block: 26px calc(26px + env(safe-area-inset-bottom, 0px)); color: var(--muted); font-size: 13.5px; }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 24px; justify-content: space-between; align-items: center; }
@@ -213,9 +228,9 @@ footer a:hover { color: var(--ink); }
 
 <section class="how gutter" id="how">
   <div class="wrap">
-    <span class="eyebrow">How it works</span>
+    <div class="how-head"><span class="eyebrow">How it works</span>
     <h2>Knock. Pay. Prove.</h2>
-    <p class="intro">Three steps between an AI agent and your page. The response below is live from our gateway.</p>
+    <p class="intro">Three steps between an AI agent and your page. The response below is live from our gateway.</p></div>
     <div class="how-grid">
       <div class="steps">
         <div class="step on" data-step="0">
@@ -410,7 +425,7 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
 
   function step(now) {
     const dt = Math.min(64, now - last) / 1000; last = now;
-    const gx = gateX(), cw = small() ? 120 : 190, speed = small() ? 110 : 160;
+    const gx = gateX(), cw = small() ? 132 : 262, speed = small() ? 110 : 160;
     if (now > nextSpawn) { spawn(now); nextSpawn = now + 650 + Math.random() * 500; }
     const L = lanes();
     for (const c of cards) {
@@ -447,7 +462,7 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
     // dotted paper grid
     ctx.fillStyle = C.line;
     for (let x = 12; x < W; x += 24) for (let y = 12; y < H; y += 24) ctx.fillRect(x, y, 1.2, 1.2);
-    const L = lanes(), gx = gateX(), cw = small() ? 120 : 190, ch = 36;
+    const L = lanes(), gx = gateX(), cw = small() ? 132 : 262, ch = 36;
 
     // lanes
     ctx.strokeStyle = C.line2; ctx.setLineDash([4, 6]); ctx.lineWidth = 1;
@@ -500,7 +515,7 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
     // cards
     for (const c of cards) {
       const y = L[c.lane] - ch / 2;
-      ctx.globalAlpha = c.alpha;
+      ctx.globalAlpha = c.alpha * Math.min(1, Math.max(0, (c.x + 40) / 120));  // fade in from the left edge
       if (c.phase === "receipt") {
         // card becomes a receipt slip
         const rx = W * 0.78 - cw, ry = y - 6;
@@ -520,7 +535,7 @@ addEventListener("scroll", () => $("#nav").classList.toggle("scrolled", scrollY 
         ctx.fillStyle = has ? C.ticket : C.sheet; ctx.strokeStyle = has ? C.tink : C.line2; ctx.lineWidth = 1.2;
         rr(c.x, y, cw, ch, 8); ctx.fill(); ctx.stroke();
         ctx.fillStyle = has ? C.tink : C.ink; ctx.font = `500 ${small() ? 10 : 11.5}px "IBM Plex Mono", monospace`; ctx.textAlign = "left";
-        const label = small() ? c.path.replace("/blog/", "/").slice(0, 15) : `GET ${c.path}`.slice(0, 27);
+        const label = small() ? c.path.split("/").pop().slice(0, 16) : `GET ${c.path}`;
         ctx.fillText(label, c.x + 10, y + ch / 2 + .5);
         if (c.phase === "priced" || c.phase === "paying") {
           // price tag pops above the card
