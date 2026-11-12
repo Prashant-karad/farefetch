@@ -11,7 +11,7 @@ from pathlib import Path
 from sqlalchemy import select
 
 from app.db import SessionLocal, engine
-from app.models import License, Publisher, Resource
+from app.models import Agent, BudgetPolicy, License, Publisher, Resource
 
 
 def env(name: str) -> str | None:
@@ -51,6 +51,14 @@ async def main() -> None:
                 print(f"{pub_id} -> {email}")
             else:
                 print(f"{var} not set; {pub_id} keeps its placeholder email")
+
+        daily = env("DEMO_DAILY_BUDGET_USD")
+        if daily:
+            agent = await session.scalar(select(Agent).limit(1))
+            policy = await session.get(BudgetPolicy, agent.id) if agent else None
+            if policy is not None:
+                policy.max_per_day = int(float(daily) * 10_000)
+                print(f"Daily budget set to ${daily}")
 
         await session.commit()
     await engine.dispose()

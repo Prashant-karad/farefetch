@@ -9,7 +9,8 @@ from app.db import engine
 from app.redis_client import redis_client
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import admin, agents, catalog, dashboard, demo, internal, product, purchases, topups, usage, wallet
+from app.config import settings
+from app.routers import admin, agents, catalog, dashboard, demo, edge, internal, product, purchases, topups, usage, wallet
 
 
 @asynccontextmanager
@@ -22,6 +23,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Fairfetch Platform API", version="1.0.0", lifespan=lifespan)
 for r in (agents, internal, purchases, wallet, topups, usage, catalog, admin, dashboard, demo, product):
     app.include_router(r.router)
+if settings.edge_proxy_gateway:
+    app.include_router(edge.router)
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 

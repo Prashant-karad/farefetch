@@ -4,13 +4,14 @@ Run from platform/:  python -m scripts.seed
 """
 
 import asyncio
+import os
 from pathlib import Path
 
 from sqlalchemy import select
 
 from app.db import SessionLocal, engine
 from app.models import Account, Agent, AgentOwner, BudgetPolicy, License, Publisher, Resource
-from app.services.security import generate_api_key
+from app.services.security import generate_api_key, hash_api_key
 
 ARTICLES_DIR = Path(__file__).resolve().parents[2] / "demo-sites" / "blog" / "articles"
 
@@ -77,7 +78,9 @@ async def main() -> None:
 
         session.add(Account(type="agent_wallet", owner_id=owner.id))
 
-        full_key, prefix, key_hash = generate_api_key()
+        # Hosting sets DEMO_AGENT_API_KEY up front so the live demo agent knows its key; locally we generate one.
+        fixed = os.environ.get("DEMO_AGENT_API_KEY", "").strip()
+        full_key, prefix, key_hash = (fixed, fixed[:12], hash_api_key(fixed)) if fixed else generate_api_key()
         agent = Agent(owner_id=owner.id, name="study-agent", api_key_prefix=prefix, api_key_hash=key_hash)
         session.add(agent)
         await session.flush()
