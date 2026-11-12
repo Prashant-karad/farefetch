@@ -35,10 +35,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 @keyframes stamp-in { from { opacity: 0; transform: rotate(-8deg) scale(2.4); } to { opacity: 1; transform: rotate(-8deg) scale(1); } }
 .hero .fade { animation: fadeup .8s cubic-bezier(.2,.9,.2,1) both; }
 @keyframes fadeup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.hero h1 .mark { position: relative; white-space: nowrap; }
-.hero h1 .mark::after { content: ""; position: absolute; left: -.04em; right: -.04em; bottom: .06em; height: .26em; background: var(--ticket);
-  z-index: -1; transform-origin: left; animation: swipe .7s .95s cubic-bezier(.2,.9,.2,1) both; }
-@keyframes swipe { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.hero h1 .mark { white-space: nowrap; text-decoration: underline; text-decoration-color: var(--ticket); text-decoration-thickness: .1em;
+  text-underline-offset: .12em; text-decoration-skip-ink: auto; animation: ink .6s .95s ease-out both; }
+@keyframes ink { from { text-decoration-color: transparent; } to { text-decoration-color: var(--ticket); } }
 .hero .lede { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px 48px; align-items: end; margin-top: 8px; }
 .hero p { margin: 0; font-size: clamp(17px, 1.6vw, 20px); color: var(--ink-2); max-width: 56ch; }
 .hero .ctas { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
