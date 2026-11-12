@@ -1,0 +1,286 @@
+{
+  "collection": {
+    "info": {
+      "name": "Fairfetch: be the agent yourself",
+      "description": "Run the real Fairfetch protocol against the live deployment, in order: knock (402) \u2192 pay (signed pass) \u2192 read \u2192 prove (license check + signed receipt). Live app: https://fairfetch-xm1y.onrender.com",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+      {
+        "key": "base",
+        "value": "https://fairfetch-xm1y.onrender.com"
+      },
+      {
+        "key": "api_key",
+        "value": ""
+      },
+      {
+        "key": "resource_id",
+        "value": ""
+      },
+      {
+        "key": "pass_token",
+        "value": ""
+      },
+      {
+        "key": "grant_id",
+        "value": ""
+      },
+      {
+        "key": "receipt_signature",
+        "value": ""
+      },
+      {
+        "key": "article_body",
+        "value": ""
+      },
+      {
+        "key": "copied_answer",
+        "value": ""
+      }
+    ],
+    "item": [
+      {
+        "name": "1 \u00b7 Knock: ask for an article without paying",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": "{{base}}/blog/python-speed-benchmark",
+          "description": "An AI agent asks for a page. Instead of the page, the Fairfetch gateway answers HTTP 402 Payment Required with the price, the license terms and a free preview."
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Gateway answers 402 Payment Required\", () => pm.response.to.have.status(402));",
+                "const b = pm.response.json();",
+                "pm.test(\"It quotes a price and a license\", () => { pm.expect(b.price.display).to.match(/^[$]/); pm.expect(b.license.id).to.be.a(\"string\"); });",
+                "pm.collectionVariables.set(\"resource_id\", b.resource_id);",
+                "console.log(\"Price \" + b.price.display + \", license \" + b.license.id);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "2 \u00b7 Pay: buy an access pass",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{api_key}}"
+            },
+            {
+              "key": "Idempotency-Key",
+              "value": "{{$guid}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": "{{base}}/v1/purchases",
+          "description": "The agent pays from its wallet (funded with PayPal). The platform enforces the owner's spending rules, records balanced ledger entries (90% publisher, 10% fee) and returns a signed time pass (ES256 JWT). The Idempotency-Key means a retry never charges twice. Needs the api_key collection variable.",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"resource_id\": \"{{resource_id}}\",\n  \"reason\": \"Testing the protocol from Postman\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Purchase succeeds\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                "const b = pm.response.json();",
+                "pm.collectionVariables.set(\"pass_token\", b.pass_token);",
+                "pm.collectionVariables.set(\"grant_id\", b.grant_id);",
+                "pm.test(\"A signed pass is returned\", () => pm.expect(b.pass_token.split(\".\").length).to.eql(3));",
+                "console.log(b.already_owned ? \"Already had a valid pass: not charged again\" : \"Paid $\" + (b.price / 10000));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "3 \u00b7 Read: present the pass",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{api_key}}"
+            },
+            {
+              "key": "X-Access-Pass",
+              "value": "{{pass_token}}"
+            }
+          ],
+          "url": "{{base}}/blog/python-speed-benchmark",
+          "description": "Same request as step 1, now with the pass. The gateway verifies the signature with the public key only, checks agent, page and expiry, then fetches the article from the publisher."
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Gateway lets the paid agent in (200)\", () => pm.response.to.have.status(200));",
+                "pm.test(\"License header is attached\", () => pm.expect(pm.response.headers.get(\"X-Fairfetch-License\")).to.be.a(\"string\"));",
+                "pm.collectionVariables.set(\"article_body\", pm.response.json().body || \"\");"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "4 \u00b7 Prove: check a fair answer",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{api_key}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": "{{base}}/v1/usage/check",
+          "description": "Before an answer ships, the license guard checks it against the publisher's original text: copied word runs vs the license limit, citation and pass expiry. A fair answer passes and gets a signed usage receipt.",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"answer\": \"Measure first, then move numeric loops to NumPy, which was about 47 times faster than a plain loop in Code Dojo's test [res_python_speed_benchmark].\",\n  \"grant_ids\": [\n    \"{{grant_id}}\"\n  ],\n  \"auto_fix\": true\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const b = pm.response.json();",
+                "pm.test(\"Fair answer passes\", () => pm.expect(b.passed).to.eql(true));",
+                "pm.test(\"No violations found\", () => pm.expect(b.violations_found.length).to.eql(0));",
+                "pm.collectionVariables.set(\"receipt_signature\", b.signature);",
+                "console.log(\"Receipt \" + b.receipt_id);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "5 \u00b7 Copy on purpose: watch it get caught",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{api_key}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": "{{base}}/v1/usage/check",
+          "description": "An answer that pastes the article word for word and forgets the credit. The guard reports the violations, fixes the answer, and the receipt records what was caught.",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"answer\": \"{{copied_answer}}\",\n  \"grant_ids\": [\n    \"{{grant_id}}\"\n  ],\n  \"auto_fix\": true\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const body = pm.collectionVariables.get('article_body') || '';",
+                "const copied = body.split(/(?<=[.!?])\\s+/).slice(0, 2).join(' ');",
+                "pm.collectionVariables.set('copied_answer', 'Here is what I found. ' + copied);"
+              ]
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const b = pm.response.json();",
+                "pm.test(\"Copying is caught\", () => pm.expect(b.violations_found.map(v => v.type)).to.include(\"verbatim_copy\"));",
+                "pm.test(\"The answer was fixed\", () => pm.expect(b.fixed_by).to.be.a(\"string\"));",
+                "console.log(\"Caught: \" + b.violations_found.map(v => v.message).join(\" | \"));",
+                "console.log(\"Fixed answer: \" + b.answer);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "6 \u00b7 Verify the receipt with the public key",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": "{{base}}/v1/demo/verify",
+          "description": "Anyone, for example the publisher, can verify the receipt signature with the public key without trusting Fairfetch.",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"token\": \"{{receipt_signature}}\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test(\"Signature is valid\", () => pm.expect(pm.response.json().valid).to.eql(true));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Price list for agents (.well-known)",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": "{{base}}/.well-known/fairfetch.json",
+          "description": "Machine-readable prices and licenses, like robots.txt for paid content."
+        },
+        "event": []
+      }
+    ]
+  }
+}

@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/static/ff.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-grid.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/styles/ag-theme-quartz.css">
 <style>
 /* Layout: product app. Top bar with role switch; Agent owner = sidebar (wallet, rules, passes) + chat;
    Publisher = sub-tabs Overview / Set up / Content. */
@@ -156,6 +158,10 @@ table.content { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.content th { text-align: left; font: 600 11.5px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; }
 table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top; }
 .tbl { overflow-x: auto; }
+.ff-grid { --ag-font-family: var(--body); --ag-font-size: 14px; --ag-background-color: var(--sheet); --ag-header-background-color: var(--sheet-2);
+  --ag-foreground-color: var(--ink); --ag-header-foreground-color: var(--muted); --ag-border-color: var(--line); --ag-row-border-color: var(--line);
+  --ag-odd-row-background-color: var(--sheet); --ag-row-hover-color: var(--sheet-2); --ag-accent-color: var(--blue); --ag-wrapper-border-radius: 10px; }
+.ff-grid .price-cell { font-family: var(--mono); font-weight: 600; }
 
 @media (max-width: 1020px) {
   .agent, .ov, .wiz { grid-template-columns: minmax(0, 1fr); }
@@ -359,8 +365,8 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
     <!-- content -->
     <div id="t-content" hidden>
       <div class="sheet card">
-        <div class="card-h"><span class="eyebrow">Your content behind the gateway</span><span class="sub">prices update the gateway instantly</span></div>
-        <div class="tbl"><table class="content"><thead><tr><th>Page</th><th>Price</th><th>License</th><th>Asked to pay</th><th>Paid reads</th></tr></thead><tbody id="content-rows"></tbody></table></div>
+        <div class="card-h"><span class="eyebrow">Your content behind the gateway</span><span class="sub">Double-click a price to change it. The gateway uses the new price immediately.</span></div>
+        <div id="content-grid" class="ag-theme-quartz ff-grid" style="width:100%"></div>
       </div>
     </div>
   </section>
@@ -373,6 +379,7 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
   <div class="verify" id="rc-verify-out" hidden></div>
 </div></dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@32.3.3/dist/ag-grid-community.min.js"></script>
 <script src="/static/ff.js"></script>
 <script>
 "use strict";
@@ -666,8 +673,34 @@ async function loadPublisher() {
   if (first) d.visitors.forEach(v => seenVisits.add(v.time + v.title));
   $("#receipts").innerHTML = d.receipts.length ? d.receipts.slice(0, 4).map(r => receipt(r)).join("")
     : `<div class="empty">Receipts appear here after an agent's answer passes the license check.</div>`;
-  $("#content-rows").innerHTML = d.content.map(c => `<tr><td><b style="font-weight:600">${esc(c.title)}</b><div class="sub mono">${esc(c.path)}</div></td>
-    <td class="mono">${esc(c.price_display)}</td><td>${esc(licShort(c.license_id))}</td><td class="num">${c.asked}</td><td class="num">${c.paid_reads}</td></tr>`).join("");
+  renderContentGrid(d.content);
+}
+/* Content table: AG Grid, prices editable in place */
+let contentGrid = null;
+function renderContentGrid(rows) {
+  const data = rows.map(c => ({ ...c, price_usd: c.price / 10000 }));
+  if (contentGrid) { contentGrid.setGridOption("rowData", data); return; }
+  if (!window.agGrid) { $("#content-grid").textContent = "Table unavailable."; return; }
+  contentGrid = agGrid.createGrid($("#content-grid"), {
+    rowData: data, getRowId: p => p.data.resource_id, animateRows: true, domLayout: "autoHeight",
+    defaultColDef: { sortable: true, filter: true, resizable: true },
+    columnDefs: [
+      { field: "title", headerName: "Page", flex: 2, minWidth: 240, cellRenderer: p => `<b style="font-weight:600">${esc(p.value)}</b> <span style="color:var(--muted);font-family:var(--mono);font-size:12px">${esc(p.data.path)}</span>` },
+      { field: "price_usd", headerName: "Price per read", width: 150, editable: true, cellClass: "price-cell", cellEditor: "agNumberCellEditor",
+        cellEditorParams: { min: 0.001, max: 0.5, precision: 4 }, valueFormatter: p => "$" + Number(p.value).toFixed(4) },
+      { field: "license_id", headerName: "License", width: 200, valueFormatter: p => FF.LICENSES[p.value]?.opt || p.value },
+      { field: "asked", headerName: "Asked to pay", width: 130, type: "numericColumn", filter: "agNumberColumnFilter" },
+      { field: "paid_reads", headerName: "Paid reads", width: 120, type: "numericColumn", filter: "agNumberColumnFilter", sort: "desc" },
+    ],
+    onCellValueChanged: async e => {
+      if (e.colDef.field !== "price_usd") return;
+      const price = Math.round(Number(e.newValue) * 10000);
+      try {
+        await api("/v1/demo/go-live", { method: "POST", body: JSON.stringify({ items: [{ resource_id: e.data.resource_id, price, license_id: e.data.license_id }] }) });
+        toast(`New price is live: ${usd(price)}`, e.data.title, "$", "var(--blue)");
+      } catch (err) { toast("Price not saved", err.message, "!", "var(--red)"); e.node.setDataValue("price_usd", e.oldValue); }
+    },
+  });
 }
 function setTrack(n) { $$("#track .s").forEach((s, i) => s.classList.toggle("on", i < n)); }
 $("#payout-btn").onclick = async () => {
