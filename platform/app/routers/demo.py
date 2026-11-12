@@ -293,11 +293,16 @@ async def settle(session: AsyncSession = Depends(get_session)):
         raise HTTPException(502, detail={"code": "paypal_error", "message": str(exc)[:300]})
 
 
+class TopupAmount(BaseModel):
+    # Same limits as the public top-up API: $1.00 to $100.00, whole cents
+    amount: Decimal = Field(default=Decimal("5.00"), ge=Decimal("1.00"), le=Decimal("100.00"), max_digits=6, decimal_places=2)
+
+
 @router.post("/v1/demo/topup")
-async def topup(session: AsyncSession = Depends(get_session)):
+async def topup(body: TopupAmount | None = None, session: AsyncSession = Depends(get_session)):
     agent = await demo_agent(session)
     try:
-        return await start_topup(session, owner_id=agent.owner_id, amount=Decimal("5.00"))
+        return await start_topup(session, owner_id=agent.owner_id, amount=(body or TopupAmount()).amount)
     except TopupError as exc:
         raise HTTPException(exc.status, detail={"code": exc.code, "message": exc.message})
 

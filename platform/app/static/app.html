@@ -48,7 +48,7 @@ input.field:focus, textarea.field:focus, select.field:focus { border-color: var(
 .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
 
 /* ---------- agent owner ---------- */
-.agent { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; }
+.agent { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 18px; align-items: start; }
 .side { display: grid; gap: 14px; position: sticky; top: calc(130px + env(safe-area-inset-top, 0px)); }
 .money-big { font: 800 40px/1 var(--display); font-variation-settings: "wdth" 115; letter-spacing: -.02em; }
 .passes { display: grid; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
@@ -96,6 +96,22 @@ input.field:focus, textarea.field:focus, select.field:focus { border-color: var(
 .answer .foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .rcpt-btn { border: 0; cursor: pointer; background: var(--green-soft); color: var(--green); font-weight: 700; border-radius: 999px; padding: 6px 12px; font-size: 13px; }
 .rcpt-btn.red { background: var(--red-soft); color: var(--red); }
+
+/* top-up */
+.amounts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr); gap: 6px; }
+.amt-btn { border: 1.5px solid var(--line-2); background: var(--sheet); border-radius: 10px; padding: 8px 0; font: 700 14px var(--body); cursor: pointer; color: var(--ink); }
+.amt-btn[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.amt-custom { display: flex; align-items: center; gap: 2px; border: 1.5px solid var(--line-2); border-radius: 10px; padding: 0 8px; background: var(--sheet); }
+.amt-custom:focus-within { border-color: var(--blue); }
+.amt-custom span { color: var(--muted); font-weight: 600; }
+.amt-custom input { border: 0; outline: none; background: transparent; width: 100%; min-width: 0; font: 600 14px var(--body); padding: 8px 0; }
+.linkish { border: 0; background: none; padding: 0; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; }
+.creds { display: grid; gap: 6px; background: var(--sheet-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.cred { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.cred-k { font-size: 12px; color: var(--muted); }
+.cred-v { font: 500 12px var(--body); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cred-copy { border: 1px solid var(--line-2); background: var(--sheet); border-radius: 7px; padding: 2px 7px; font: 600 11px var(--body); cursor: pointer; color: var(--ink-2); }
+.cred-copy:hover { border-color: var(--blue); color: var(--blue); }
 
 /* modal */
 dialog { border: 0; padding: 0; background: transparent; max-width: min(460px, calc(100vw - 32px)); width: 100%; }
@@ -209,9 +225,7 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
             <div class="card-h"><span class="sub">Spent today</span><span class="sub num" id="spent-line">$0.0000 of $1.0000</span></div>
             <div class="bar"><i id="spent-bar" style="width:0%"></i></div>
           </div>
-          <div id="topup-area" style="display:grid;gap:8px">
-            <button class="btn btn-primary" id="topup-btn">Add $5.00 with PayPal</button>
-          </div>
+          <div id="topup-area" style="display:grid;gap:8px"></div>
           <div id="topups" style="display:grid;gap:4px"></div>
         </div>
         <div class="sheet card" id="rules-card">
@@ -419,7 +433,7 @@ async function loadOwner() {
     $("#rule-chips").innerHTML = `<span class="chip blue">max ${r.max_per_item_display} per item</span><span class="chip blue">max ${r.max_per_day_display} a day</span>` +
       (r.approval_display ? `<span class="chip blue">ask me above ${r.approval_display}</span>` : "");
   }
-  $("#topups").innerHTML = owner.topups.filter(t => !t.order?.startsWith("DEV")).slice(0, 2).map(t => `<div class="card-h" style="font-size:12.5px"><span class="mono">${esc("PayPal " + (t.order || ""))}</span>
+  $("#topups").innerHTML = owner.topups.filter(t => !t.order?.startsWith("DEV") && t.status === "completed").slice(0, 2).map(t => `<div class="card-h" style="font-size:12.5px"><span class="mono">${esc("PayPal " + (t.order || ""))}</span>
     <span class="chip ${t.status === "completed" ? "green" : ""}" style="font-size:11px">${esc(t.amount)} ${esc(t.status === "created" ? "awaiting approval" : t.status)}</span></div>`).join("");
   const known = new Set($$("#passes .ticket").map(t => t.dataset.g));
   $("#passes").innerHTML = owner.passes.length ? owner.passes.map(p => ticket({ ...p, printing: !known.has(p.grant_id) && known.size > 0 }).replace('class="ticket', `data-g="${p.grant_id}" class="ticket`)).join("")
@@ -428,26 +442,51 @@ async function loadOwner() {
 }
 
 /* PayPal top-up */
+/* Top-up: pick an amount, approve in PayPal, capture */
+let topupAmount = 5;
+function money(n) { return "$" + Number(n).toFixed(2); }
+function renderTopupForm() {
+  $("#topup-area").innerHTML = `
+    <div class="amounts" role="group" aria-label="Amount">
+      ${[5, 10, 20].map(v => `<button type="button" class="amt-btn" data-amt="${v}" aria-pressed="${v === topupAmount}">$${v}</button>`).join("")}
+      <label class="amt-custom"><span>$</span><input id="amt-custom" inputmode="decimal" placeholder="Other" aria-label="Custom amount in dollars"
+        value="${[5, 10, 20].includes(topupAmount) ? "" : topupAmount}"></label>
+    </div>
+    <button class="btn btn-primary" id="topup-btn">Add ${money(topupAmount)} with PayPal</button>
+    <span class="sub" id="amt-msg">Any amount from $1 to $100.</span>`;
+  $$(".amt-btn").forEach(b => b.onclick = () => { topupAmount = +b.dataset.amt; renderTopupForm(); });
+  $("#amt-custom").oninput = e => {
+    const v = parseFloat(e.target.value);
+    const ok = v >= 1 && v <= 100;
+    if (ok) topupAmount = Math.round(v * 100) / 100;
+    $$(".amt-btn").forEach(b => b.setAttribute("aria-pressed", ok ? "false" : String(+b.dataset.amt === topupAmount)));
+    $("#topup-btn").textContent = `Add ${money(topupAmount)} with PayPal`;
+    $("#topup-btn").disabled = !!e.target.value && !ok;
+    $("#amt-msg").textContent = e.target.value && !ok ? "Enter an amount between $1 and $100." : "Any amount from $1 to $100.";
+  };
+  $("#topup-btn").onclick = startTopup;
+}
 async function startTopup() {
-  const area = $("#topup-area"), btn = $("#topup-btn");
+  const area = $("#topup-area"), btn = $("#topup-btn"), amount = topupAmount;
   btn.disabled = true; btn.textContent = "Creating PayPal order…";
   try {
-    const r = await api("/v1/demo/topup", { method: "POST" });
-    area.innerHTML = `<a class="btn btn-primary" href="${esc(r.approve_url)}" target="_blank" rel="noopener">1 · Approve $5.00 in PayPal ↗</a>
-      <button class="btn btn-ghost" id="capture-btn">2 · I approved it, add the money</button><span class="sub" id="cap-msg">PayPal opens in a new tab.</span>${buyerBox()}`;
+    const r = await api("/v1/demo/topup", { method: "POST", body: JSON.stringify({ amount: amount.toFixed(2) }) });
+    area.innerHTML = `<a class="btn btn-primary" href="${esc(r.approve_url)}" target="_blank" rel="noopener">1 · Approve ${money(amount)} in PayPal ↗</a>
+      <button class="btn btn-ghost" id="capture-btn">2 · I approved it, add the money</button>
+      <div style="display:flex;justify-content:space-between;gap:8px"><span class="sub" id="cap-msg">PayPal opens in a new tab.</span>
+        <button type="button" class="linkish" id="topup-cancel">Cancel</button></div>${buyerBox()}`;
+    $("#topup-cancel").onclick = renderTopupForm;
     $("#capture-btn").onclick = async () => {
       $("#cap-msg").textContent = "Capturing the payment at PayPal…";
       try {
         const c = await api(`/v1/demo/topup/${encodeURIComponent(r.paypal_order_id)}/capture`, { method: "POST" });
         toast(`${c.amount} added to the wallet`, "PayPal payment captured and verified", "+", "var(--blue)");
-        area.innerHTML = `<button class="btn btn-primary" id="topup-btn">Add $5.00 with PayPal</button>`;
-        $("#topup-btn").onclick = startTopup;
-        loadOwner();
+        renderTopupForm(); loadOwner();
       } catch (e) { $("#cap-msg").textContent = `Not captured yet: ${e.message}. Approve in the PayPal tab first.`; }
     };
-  } catch (e) { btn.disabled = false; btn.textContent = "Add $5.00 with PayPal"; toast("PayPal order failed", e.message, "!", "var(--red)"); }
+  } catch (e) { btn.disabled = false; btn.textContent = `Add ${money(amount)} with PayPal`; toast("PayPal order failed", e.message, "!", "var(--red)"); }
 }
-$("#topup-btn").onclick = startTopup;
+renderTopupForm();
 
 /* plain-English rules */
 $("#rule-form").onsubmit = async e => {
@@ -489,7 +528,7 @@ async function ask() {
   const q = $("#q").value.trim();
   if (!q || running) return;
   if (owner && owner.wallet.balance < 200) {
-    toast("Add money first", "Your agent's wallet is empty. Use “Add $5.00 with PayPal”.", "$", "var(--blue)");
+    toast("Add money first", "Your agent's wallet is empty. Add money with PayPal in the wallet panel.", "$", "var(--blue)");
     $("#wallet-card").classList.add("hl"); setTimeout(() => $("#wallet-card").classList.remove("hl"), 3400);
     $("#wallet-card").scrollIntoView({ behavior: "smooth", block: "center" });
     return;
@@ -834,14 +873,13 @@ try { if (!localStorage.getItem("ff_tour_seen")) { setTour(true); localStorage.s
 let CONFIG = { test_mode: false, test_buyer: null };
 function buyerBox() {
   const b = CONFIG.test_buyer; if (!b) return "";
-  return `<div class="sheet" style="padding:10px 12px;display:grid;gap:4px;background:var(--sheet-2);box-shadow:none">
-    <span class="eyebrow">Test PayPal login (sandbox money)</span>
-    <span class="mono" style="font-size:12.5px;overflow-wrap:anywhere">${esc(b.email)} <button type="button" class="chip" data-copy="${esc(b.email)}" style="cursor:pointer">copy</button></span>
-    <span class="mono" style="font-size:12.5px">${esc(b.password)} <button type="button" class="chip" data-copy="${esc(b.password)}" style="cursor:pointer">copy</button></span></div>`;
+  const row = (label, v) => `<div class="cred"><span class="cred-v" title="${label}: ${esc(v)}">${esc(v)}</span>
+    <button type="button" class="cred-copy" data-copy="${esc(v)}" aria-label="Copy ${label.toLowerCase()}">Copy</button></div>`;
+  return `<div class="creds"><span class="eyebrow">Test PayPal login (email, password)</span>${row("Email", b.email)}${row("Password", b.password)}</div>`;
 }
 document.addEventListener("click", e => {
   const c = e.target.closest("[data-copy]"); if (!c) return;
-  navigator.clipboard?.writeText(c.dataset.copy).then(() => { c.textContent = "copied"; setTimeout(() => c.textContent = "copy", 1200); }).catch(() => {});
+  navigator.clipboard?.writeText(c.dataset.copy).then(() => { c.textContent = "Copied"; setTimeout(() => c.textContent = "Copy", 1200); }).catch(() => {});
 });
 
 /* ================= boot ================= */
