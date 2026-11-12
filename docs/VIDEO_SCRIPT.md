@@ -5,7 +5,12 @@ Record at 1920×1080, browser zoom 100%, light mode, on the live site.
 **Before recording**
 1. Tabs: `https://fairfetch-xm1y.onrender.com/` · `https://studynest-94bj.onrender.com/` (the homework site) · `https://fairfetch-xm1y.onrender.com/app#publisher-setup`.
 2. Close the tour if it opens (Skip). Log in to the PayPal sandbox test buyer in the same browser.
-3. **Do not connect StudyNest before recording**: connecting it live is the key scene. (If you need a retake, it still works: the scan says StudyNest is already on Fairfetch and you can go live again.)
+3. **StudyNest must show "not protected yet"** before you record: connecting it live is the key scene.
+   For a fresh retake, disconnect it again (its history and money are kept), then refresh the app:
+   ```bash
+   curl -X POST https://fairfetch-xm1y.onrender.com/v1/demo/disconnect -H 'content-type: application/json' -d '{"publisher_id":"pub_studynest"}'
+   ```
+4. In the app, click **Take the tour** only if you want the guided version on camera; otherwise click **End tour**.
 
 | Time | Screen | Do | Say |
 |---|---|---|---|
