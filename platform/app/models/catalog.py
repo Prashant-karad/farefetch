@@ -11,6 +11,7 @@ class Publisher(TimestampMixin, Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("pub"))
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     paypal_email: Mapped[str] = mapped_column(String(320), nullable=False)
+    website_url: Mapped[str | None] = mapped_column(String(500), nullable=True)  # the publisher's own site
 
 
 class License(Base):
@@ -49,3 +50,5 @@ class Resource(TimestampMixin, Base):
     preview: Mapped[str] = mapped_column(Text, nullable=False, default="")
     word_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     uniqueness_score: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 0-100, set by AI later
+    # Where the content really lives (the publisher's own website). NULL = the bundled demo origin + path.
+    origin_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)

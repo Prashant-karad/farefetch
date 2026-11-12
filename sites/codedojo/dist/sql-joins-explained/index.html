@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL JOINs explained with one example · Code Dojo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root { --c: #e4572e; --ink: #1d1a19; --paper: #fbf7f2; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.7 Inter, system-ui, sans-serif; }
+header { border-bottom: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); }
+.in { max-width: 760px; margin: 0 auto; padding: 0 max(18px, env(safe-area-inset-left, 0px)); }
+header .in { display: flex; justify-content: space-between; align-items: center; padding-block: 18px; gap: 12px; flex-wrap: wrap; }
+.logo { font: 700 24px 'Space Grotesk', Georgia, serif; color: var(--ink); text-decoration: none; }
+.logo span { color: var(--c); }
+nav a { color: var(--ink); opacity: .7; text-decoration: none; font-size: 15px; }
+h1 { font: 700 clamp(30px, 5vw, 44px)/1.15 'Space Grotesk', Georgia, serif; margin: 40px 0 10px; text-wrap: balance; }
+.tag { color: var(--c); font-weight: 600; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; }
+article p { margin: 0 0 1.1em; }
+.list { list-style: none; padding: 0; margin: 28px 0; display: grid; gap: 14px; }
+.list a { display: block; padding: 18px 20px; background: #fff; border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  border-radius: 12px; text-decoration: none; color: var(--ink); font: 600 19px/1.35 'Space Grotesk', Georgia, serif; }
+.list a:hover { border-color: var(--c); }
+.list small { display: block; font: 400 14px Inter, sans-serif; opacity: .65; margin-top: 4px; }
+footer { margin: 60px 0 30px; font-size: 14px; opacity: .6; }
+</style></head>
+<body><header><div class="in"><a class="logo" href="/">Code <span>Dojo</span></a>
+<nav><a href="/">All guides</a></nav></div></header>
+<main class="in"><span class="tag">Guide</span><h1>SQL JOINs explained with one example</h1><article><p>A JOIN combines rows from two tables using a column they share. Imagine a customers table and an orders table, where each order stores the customer_id of the person who placed it.</p><p>An INNER JOIN returns only the pairs that match: customers who have placed at least one order, each next to their orders. A LEFT JOIN keeps every customer from the left table and fills the order columns with NULL when a customer has never ordered, which is how you find inactive customers: LEFT JOIN, then filter WHERE orders.id IS NULL. A RIGHT JOIN is the same idea from the other side, and a FULL OUTER JOIN keeps unmatched rows from both tables.</p><p>Two mistakes cause most wrong results. The first is joining on the wrong column, which silently multiplies rows. The second is putting a filter on the right table in the WHERE clause after a LEFT JOIN, which quietly turns it back into an INNER JOIN; put that condition in the ON clause instead. When numbers look too large, count rows before and after the join to see whether it multiplied them.</p></article></main>
+<footer class="in">© Code Dojo · Programming concepts, explained without the jargon.</footer></body></html>
