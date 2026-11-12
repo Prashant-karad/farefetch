@@ -47,7 +47,11 @@ async def main() -> None:
                             ("pub_moneywise", "PUBLISHER_B_PAYPAL_EMAIL")):
             email = env(var)
             if email:
-                (await session.get(Publisher, pub_id)).paypal_email = email
+                pub = await session.get(Publisher, pub_id)
+                if pub is None:
+                    print(f"{pub_id} not found; skipped")
+                    continue
+                pub.paypal_email = email
                 print(f"{pub_id} -> {email}")
             else:
                 print(f"{var} not set; {pub_id} keeps its placeholder email")
