@@ -6,14 +6,17 @@ AI agents pay publishers per read with PayPal, and prove they used the work fair
 ## Try it (2 minutes, no setup)
 - **Live app:** https://fairfetch-xm1y.onrender.com/app (a short tour opens automatically)
 - **Payments are PayPal sandbox.** The app shows a test PayPal login next to "Add $5.00 with PayPal".
-1. **Publisher → Set up** → click **codedojo.dev** → prices appear → Continue → **Go live** → **Send a test bot** (real HTTP 402).
-2. **Agent owner** → add $5 with PayPal (test login shown) → ask *"Make slow Python code faster"* and watch it price, choose, pay and answer.
+0. Click **Take the tour**: every step has a "Do it for me" button.
+1. **Publisher → Set up** → click **StudyNest** (a real, separate homework website) → AI prices appear → Continue → **Go live** → **Send a test bot** (real HTTP 402).
+2. **Agent owner** → add money with PayPal (test login shown) → ask *"How does photosynthesis work?"* and watch it price, choose, pay StudyNest and answer with credit.
 3. Switch to **Careless agent** and ask again: the license check catches the copying and fixes it.
 4. **Publisher → Overview** → see who paid and why → **Pay me via PayPal** (real sandbox Payouts batch).
 5. **Under the hood:** https://fairfetch-xm1y.onrender.com/live shows every HTTP call of a run, the ledger and signature checks.
 
 ## Inspiration
-AI assistants now answer questions by reading blogs, tutorials and guides. The people who wrote them get no
+AI assistants now answer questions by reading blogs, tutorials and guides. The sites hit hardest are exactly the
+"what is OOP / how do SQL JOINs work / what is compound interest" kind: Stack Overflow lost about a third of its
+visitors in a year, Chegg's non-subscriber traffic fell about half, and finance and reference explainers lost about a third. The people who wrote them get no
 visit, no credit and no money, so their only choice is to block bots. HTTP has had a status code for this since
 1997, `402 Payment Required`, but nobody used it. Paying for access is only half the problem: once an agent has
 paid, nothing stops it from pasting your article word for word without credit. We wanted both halves.
@@ -21,7 +24,7 @@ paid, nothing stops it from pasting your article word for word without credit. W
 ## What it does
 Fairfetch is a gateway that sits in front of any website.
 
-- **Publishers** paste their site's link. Fairfetch reads the sitemap, an AI suggests a price per page based on how
+- **Publishers** paste their website's link (the demo has three real, separately hosted sites: Code Dojo, MoneyWise and StudyNest). Fairfetch reads the sitemap, an AI suggests a price per page based on how
   original it is, and the publisher picks a license (read, quote or data). From then on, an unpaid AI request gets
   **HTTP 402** with the price, license terms and a free preview instead of the page.
 - **Agent owners** fund a wallet with **PayPal Checkout** and set spending rules in plain English
@@ -34,8 +37,8 @@ Fairfetch is a gateway that sits in front of any website.
 - **Publishers are paid with PayPal Payouts**, and see who paid, why, and how their work was used.
 
 ## How we built it
-- **Gateway** (FastAPI): returns 402 price lists, verifies ES256 passes with the public key only, reverse-proxies to
-  the unchanged publisher site, caches lookups in Redis, and publishes a machine-readable price list at
+- **Gateway** (FastAPI): returns 402 price lists, verifies ES256 passes with the public key only, reverse-proxies paid
+  reads to each publisher's own, unchanged website, caches lookups in Redis, and publishes a machine-readable price list at
   `/.well-known/fairfetch.json`.
 - **Platform** (FastAPI, PostgreSQL, Redis): wallets and a **double-entry ledger** (every transaction sums to zero,
   append-only, wallets can never go negative), idempotent purchases, pass and receipt signing, the license guard,
@@ -61,7 +64,7 @@ Fairfetch is a gateway that sits in front of any website.
 Every AI step has a deterministic fallback, so the money and licensing paths never depend on a model being up.
 
 ### Sponsor tools used
-- **Render:** the live deployment (one web service + Render PostgreSQL + Render Key Value).
+- **Render:** the live deployment (one web service + Render PostgreSQL + Render Key Value) and the three publisher websites (Render static sites).
 - **AG Grid:** the publisher's content table (sort, filter, edit a price in place; the gateway uses it immediately) and the classic dashboard.
 - **Postman:** a "be the agent yourself" collection that runs the protocol step by step with tests: 402 → purchase → read → license check → receipt verification ([`docs/postman`](https://github.com/Prashant-karad/farefetch/tree/main/docs/postman)).
 

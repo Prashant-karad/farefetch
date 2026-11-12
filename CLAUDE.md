@@ -77,3 +77,10 @@ Known limits: scan works for any URL but only the demo site can go live; sites t
 - Keep-awake: .github/workflows/keep-awake.yml pings /health every 5 min.
 - Prod agent key = PROD_DEMO_AGENT_API_KEY in .env (never publish it). Postman collection (no key) in workspace "Fairfetch".
 - Test mode shows the PayPal sandbox test buyer (PAYPAL_TEST_BUYER_* env) next to the top-up button.
+
+## Multi-site (Nov 12, evening)
+- Publishers live on their own websites: sites/content.py + sites/build.py → sites/<slug>/dist, Render static sites
+  (codedojo-ehjx, studynest-94bj, moneywise-l1l4 .onrender.com; ids in sites/urls.json). Resource.origin_url = real page.
+- Gateway path /p/<site>/<page> → forwards to origin_url. scripts/migrate_sites.py moves old DBs in place (runs on boot).
+- StudyNest is NOT connected on prod on purpose: the user connects it live in the video.
+- Spotlight tour in app.html (TOUR array, "Do it for me" waits for each action). Rollback tag: stable-before-multisite.

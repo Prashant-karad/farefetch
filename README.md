@@ -26,8 +26,10 @@ For API testing, import [`docs/postman/fairfetch.postman_collection.json`](docs/
 | **`/app#publisher`** | Publisher: earnings odometer, AI visitors who paid (and why), signed usage receipts, **PayPal Payouts** |
 | **`/live`** | Under the hood: every HTTP call of an agent run on a network map, the double-entry ledger, signature verification |
 
-The demo publishers are **Code Dojo** (programming tutorials with original benchmarks) and **Learn Daily**
-(study and career how-tos): the kind of writing AI assistants answer from every day. Articles are sample content.
+The publishers are three real, separately hosted websites (`sites/`, built with `python sites/build.py`):
+**Code Dojo** (programming concepts) and **MoneyWise** (money basics) are on Fairfetch from the start;
+**StudyNest** (homework help) is connected live through the setup flow. The gateway proxies paid reads to each
+publisher's own site at `/p/<site>/<page>`. Articles are original sample content.
 
 ## How it works
 
