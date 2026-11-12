@@ -11,6 +11,11 @@ repairs them, and issues a **signed usage receipt** the publisher can verify. Pu
 
 > Paying for access is solved by others. Fairfetch adds the missing half: **proof of fair use after payment.**
 
+## Try it live
+**https://fairfetch-xm1y.onrender.com** · open the app: **https://fairfetch-xm1y.onrender.com/app** (a 2-minute tour opens automatically).
+Payments run in **PayPal sandbox** (test mode): the app shows a test PayPal login next to the top-up button.
+For API testing, import [`docs/postman/fairfetch.postman_collection.json`](docs/postman/fairfetch.postman_collection.json) into Postman.
+
 ## See it
 
 | Page | What it shows |
@@ -88,8 +93,10 @@ Use **United States** sandbox accounts (a US Business account linked to your app
 for the buyer and the two publishers). Enable **Payouts** for the app in the developer dashboard.
 
 ## Deploy
-`render.yaml` is a Render Blueprint (PostgreSQL, Key Value, origin, platform, gateway). Fill the
-`sync: false` variables (PayPal keys, `PASS_PRIVATE_KEY` / `PASS_PUBLIC_KEY` as PEM text, public URLs).
+The live demo runs on **Render** as one web service (`bash deploy/start.sh`: publisher site and gateway on
+localhost, platform on the public port, forwarding the gateway's public paths) plus Render PostgreSQL and Key Value.
+Build: `pip install -r platform/requirements.txt -r gateway/requirements.txt -r agent/requirements.txt`.
+A GitHub Actions job pings `/health` every 5 minutes so the free instance stays awake.
 
 ## Next steps
 Cryptographic bot identity (Web Bot Auth), x402 / RSL compatibility, an MCP server so any agent can use

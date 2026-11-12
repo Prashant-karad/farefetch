@@ -3,6 +3,15 @@
 ## Tagline
 AI agents pay publishers per read with PayPal, and prove they used the work fairly.
 
+## Try it (2 minutes, no setup)
+- **Live app:** https://fairfetch-xm1y.onrender.com/app (a short tour opens automatically)
+- **Payments are PayPal sandbox.** The app shows a test PayPal login next to "Add $5.00 with PayPal".
+1. **Publisher → Set up** → click **codedojo.dev** → prices appear → Continue → **Go live** → **Send a test bot** (real HTTP 402).
+2. **Agent owner** → add $5 with PayPal (test login shown) → ask *"Make slow Python code faster"* and watch it price, choose, pay and answer.
+3. Switch to **Careless agent** and ask again: the license check catches the copying and fixes it.
+4. **Publisher → Overview** → see who paid and why → **Pay me via PayPal** (real sandbox Payouts batch).
+5. **Under the hood:** https://fairfetch-xm1y.onrender.com/live shows every HTTP call of a run, the ledger and signature checks.
+
 ## Inspiration
 AI assistants now answer questions by reading blogs, tutorials and guides. The people who wrote them get no
 visit, no credit and no money, so their only choice is to block bots. HTTP has had a status code for this since
@@ -51,6 +60,11 @@ Fairfetch is a gateway that sits in front of any website.
 
 Every AI step has a deterministic fallback, so the money and licensing paths never depend on a model being up.
 
+### Sponsor tools used
+- **Render:** the live deployment (one web service + Render PostgreSQL + Render Key Value).
+- **AG Grid:** the publisher's content table (sort, filter, edit a price in place; the gateway uses it immediately) and the classic dashboard.
+- **Postman:** a "be the agent yourself" collection that runs the protocol step by step with tests: 402 → purchase → read → license check → receipt verification ([`docs/postman`](https://github.com/Prashant-karad/farefetch/tree/main/docs/postman)).
+
 ### AI tools used to build it
 Claude Code (Anthropic) for pair-programming, code review, UI implementation and testing with a headless browser.
 
@@ -75,7 +89,6 @@ valuable part is what happens after payment.
 Cryptographic bot identity (Web Bot Auth), x402 and RSL compatibility, an MCP server so any agent can use
 Fairfetch, real DNS onboarding for any domain, owner and publisher login, and refunds when content fails the agent.
 
-## Try it
-Repository: https://github.com/Prashant-karad/farefetch — run instructions are in the README
-(`make up`, `make install`, `make keys`, `make reset-demo`, `make dev`, then open port 8001).
-PayPal runs in sandbox mode with US sandbox accounts.
+## Links
+- Live: https://fairfetch-xm1y.onrender.com
+- Code and run instructions: https://github.com/Prashant-karad/farefetch
