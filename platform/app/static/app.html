@@ -113,6 +113,15 @@ input.field:focus, textarea.field:focus, select.field:focus { border-color: var(
 .rcpt-btn { border: 0; cursor: pointer; background: var(--green-soft); color: var(--green); font-weight: 700; border-radius: 999px; padding: 6px 12px; font-size: 13px; }
 .rcpt-btn.red { background: var(--red-soft); color: var(--red); }
 
+/* two different users, two identities: green for publishers, blue for agent owners */
+body[data-role="publisher"] .top { box-shadow: inset 0 4px 0 var(--green); }
+body[data-role="agent"] .top { box-shadow: inset 0 4px 0 var(--blue); }
+.role-label { font-size: 13px; font-weight: 600; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+body[data-role="publisher"] .role-label { background: var(--green-soft); color: var(--green); }
+body[data-role="agent"] .role-label { background: var(--blue-soft); color: var(--blue); }
+body[data-role="publisher"] .role a[aria-current="true"] { background: var(--green); color: #fff; }
+@media (max-width: 900px) { .role-label { display: none; } }
+
 /* site picker */
 .site-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
 .site-pick { position: relative; }
@@ -230,6 +239,7 @@ table.content td { padding: 12px 10px; border-top: 1px solid var(--line); vertic
       <a href="#agent" data-role="agent">Agent owner</a>
       <a href="#publisher" data-role="publisher">Publisher</a>
     </nav>
+    <span class="role-label" id="role-label"></span>
     <div class="right">
       <span class="chip ticket" id="testmode" hidden title="Payments use PayPal sandbox: real PayPal flows, no real money">Test mode · PayPal sandbox</span>
       <a class="btn btn-ghost btn-sm" href="/live" target="_blank" rel="noopener">Under the hood ↗</a>
@@ -433,6 +443,9 @@ let role = "agent", tab = "overview";
 function route() {
   const [r, t] = ROUTES[location.hash.slice(1)] || ROUTES.agent;
   role = r; if (t) tab = t;
+  document.body.dataset.role = role;
+  const rl = $("#role-label");
+  if (rl) rl.textContent = role === "publisher" ? "Publisher dashboard · for website owners" : "Agent owner console · for people who run AI agents";
   $("#v-agent").hidden = role !== "agent"; $("#v-publisher").hidden = role !== "publisher";
   $$(".role a").forEach(a => a.setAttribute("aria-current", a.dataset.role === role));
   $$(".tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab === tab));
